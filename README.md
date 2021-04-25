@@ -3,8 +3,7 @@
 It just means each algorithm is acompanied by explanation of 
 implementation details and messing around with hyperparameters 
 to see what happens (in jupyter notebooks).
-For each algorithm, I will try to include a version of implementation so 
-that it is compatible with Amazon SageMaker. 
+For each algorithm, I will try to include a version of implementation that it is compatible with Amazon SageMaker.  
 
 ## Policy gradient methods
 [A2C](./A2C)
