@@ -23,6 +23,8 @@ Coming soon
 * [yandexdataschool/Practical_RL](https://github.com/yandexdataschool/Practical_RL)
 * [Lilian Weng's Blog](https://lilianweng.github.io/lil-log/2018/04/08/policy-gradient-algorithms.html)
 * [A3C paper](https://arxiv.org/abs/1602.01783)
+* [openai/baselines](https://github/com/openai/baselines)
+
 
 
 
