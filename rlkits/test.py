@@ -59,17 +59,22 @@ def test_parallel_env_sampler():
     from rlkits.policies import PolicyWithValue
     from rlkits.env_batch import ParallelEnvBatch
     from rlkits.sampler import ParallelEnvTrajectorySampler
+    from rlkits.env_wrappers import AutoReset, StartWithRandomActions
     from rlkits.sampler import estimate_Q
     import numpy as np
     import gym
 
+    
     def make_env():
-        return gym.make('Pendulum-v0')
+        env = gym.make('CartPole-v0').unwrapped
+        env = AutoReset(env)
+        env = StartWithRandomActions(env, max_random_actions=5)
+        return env
     
     def reward_transform(rew):
         return (rew + 8.0) / 16.0
 
-    env = ParallelEnvBatch(make_env, nenvs=2)
+    env = ParallelEnvBatch(make_env, nenvs=4)
 
     #env = make_env()
     ob_space = env.observation_space
@@ -80,13 +85,13 @@ def test_parallel_env_sampler():
         hidden_layers=[1024])
 
 
-    samp = ParallelEnvTrajectorySampler(env, pi, 3, 
-                                        reward_transform=reward_transform)
+    samp = ParallelEnvTrajectorySampler(env, pi, 32)
     
     for attr in ['obs', 'rews', 'vpreds', 'dones', 'actions', 'log_prob']:
         print(attr, getattr(samp, attr).shape)
     traj = samp(callback=estimate_Q)
     pp.pprint(traj)
+    env.close()
     return
 
 

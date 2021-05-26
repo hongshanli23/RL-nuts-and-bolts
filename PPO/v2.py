@@ -47,7 +47,7 @@ def sf01(arr):
     return arr.swapaxes(0, 1).reshape(s[0] * s[1], *s[2:])
 
 
-def compute_loss(pi, trajectory, midx, eps, log_dir):
+def compute_loss(pi, trajectory, midx, eps, ent_coef, log_dir):
     """compute loss for policy and value net"""
     # policy loss
     old_log_prob = trajectory['log_prob'][midx]
@@ -73,10 +73,12 @@ def compute_loss(pi, trajectory, midx, eps, log_dir):
             pickle.dump(args, f)
         sys.exit()
         
-        
+    # DEADLY BUG
+    #log_prob = dist.log_prob(dist.sample()) 
     
-    log_prob = dist.log_prob(dist.sample())
-
+    actions = torch.from_numpy(trajectory['actions'][midx])
+    log_prob = dist.log_prob(actions)
+    
     # importance sampling ratio
     ratio = torch.exp(log_prob - old_log_prob)
     if len(ratio.shape) > 1:
@@ -112,8 +114,6 @@ def compute_loss(pi, trajectory, midx, eps, log_dir):
     # value loss
     # want to make sure the difference between new value prediction
     # and the new value prediction is clipped within [-\eps, eps]
-    
-    
     vpreds = pi.value_net(obs)
     mQ = trajectory['Q'][midx]
     mQ = torch.from_numpy(mQ)
@@ -123,7 +123,7 @@ def compute_loss(pi, trajectory, midx, eps, log_dir):
     assert vpreds.shape == mQ.shape, f"vpreds shape: {vpreds.shape}, mQ shape : {mQ.shape}"
 
     v_loss = F.mse_loss(vpreds, mQ)
-    return pi_loss + 0.1*v_loss.mean()
+    return pi_loss + v_loss.mean() - ent_coef * dist.entropy().mean()
 
 
 def PPO_clip(*,
@@ -133,6 +133,7 @@ def PPO_clip(*,
     eps,            # epsilon
     pi_lr,          # policy learning rate
     v_lr,           # value net learning rate
+    ent_coef,
     epochs,         # number of training epochs per policy update
     batch_size,
     log_interval,
@@ -189,14 +190,6 @@ def PPO_clip(*,
         adv = trajectory['Q'] - trajectory['vpreds']
         trajectory['adv'] = (adv - adv.mean())/adv.std()
         
-        piw, vw = pi.average_weight()
-        logger.record_tabular('PolicyNetAvgW', piw.numpy())
-        logger.record_tabular('ValueNetAvgW', vw.numpy())
-        
-        vqdiff = np.mean((trajectory['Q'] - trajectory['vpreds'])**2)
-        logger.record_tabular('VQDiff', vqdiff)
-        logger.record_tabular('Q', np.mean(trajectory['Q']))
-        logger.record_tabular('vpreds', np.mean(trajectory['vpreds']))
         
         # determine the clip range for the current update step
         frac = 1.0 - (update - 1.0)/nupdates
@@ -206,10 +199,16 @@ def PPO_clip(*,
         idx = np.arange(len(trajectory['obs']))
         lossvals = []
         for _ in range(epochs):
-            np.random.shuffle(idx) 
+            #np.random.shuffle(idx) 
             for i in range(0, len(idx), batch_size):
                 midx = idx[i:i+batch_size] # indices of exps to train
-                loss = compute_loss(pi, trajectory, midx, cliprange, log_dir) 
+                
+                loss = compute_loss(pi=pi, 
+                                    trajectory=trajectory, 
+                                    midx=midx, 
+                                    eps=cliprange, 
+                                    ent_coef=ent_coef*frac,
+                                    log_dir=log_dir) 
 
                 poptimizer.zero_grad()
                 voptimizer.zero_grad()
@@ -293,6 +292,7 @@ if __name__ == '__main__':
         eps = 0.2,
         pi_lr=1e-4,
         v_lr = 1e-4,
+        ent_coef=0.1,
         epochs=1,
         batch_size=64, 
         log_interval=10,
@@ -300,7 +300,7 @@ if __name__ == '__main__':
         reward_transform=None,
         log_dir='/home/ubuntu/tmp/logs/ppo/cartpole',
         ckpt_dir='/home/ubuntu/tmp/models/ppo/cartpole',
-        hidden_layers=[1024],
+        hidden_layers=[256, 512],
         activation=torch.nn.Tanh, 
         )
     

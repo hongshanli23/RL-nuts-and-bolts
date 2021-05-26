@@ -29,7 +29,10 @@ class TrajectorySampler:
         
         
         # initialize arrays to be returned for each sampling step
-        self.obs = np.array([self.curr_state for _ in range(self.nsteps)], dtype=np.float32)
+        self.obs = np.array(
+            [self.curr_state for _ in range(self.nsteps)], 
+            dtype=np.float32)
+        
         self.rews = np.zeros(self.nsteps, np.float32)
         self.vpreds = np.zeros(self.nsteps, np.float32)
         self.dones = np.zeros(self.nsteps, np.bool)
@@ -130,9 +133,9 @@ class ParallelEnvTrajectorySampler:
         self.gamma = gamma
         
         if reward_transform:
-            self.rt = reward_transform
+            self.reward_transform = reward_transform
         else:
-            self.rt = lambda x: x
+            self.reward_transform = lambda x: x
         
         self.curr_ep_rew = np.zeros(self.n) # current episode reward (curmulative)
         self.curr_ep_len = np.zeros(self.n)   # current episode length
@@ -150,7 +153,15 @@ class ParallelEnvTrajectorySampler:
         
         ac = self.env.action_space.sample()
         self.actions = np.array([ac for _ in range(self.nsteps)])
-        self.log_prob = np.array([ac for _ in range(self.nsteps)])
+        
+        # DEADLY BUG
+        # self.log_prob = np.array([ac for _ in range(self.nsteps)])
+        
+        # make sure to set dtype of log prob to float32
+        # if left unset, it will take the data type 
+        # of ac (int for discrete action)
+        self.log_prob = np.array(
+            [ac for _ in range(self.nsteps)], dtype=np.float32)
         
         # estimated state action value
         #self.Q = self.vpreds.copy()
@@ -161,38 +172,29 @@ class ParallelEnvTrajectorySampler:
         """  
         callback: callback on trajectory
         """
-        
         # episode reward and episode length
         # of this sampling
         ep_rets = [[] for _ in range(self.n)]
         ep_lens = [[] for _ in range(self.n)]
-        
-        # allocate space for one step nextpred
-    
-        
+          
         for i in range(self.nsteps):
             action, log_prob, vpred = self.policy.step(self.curr_state)
-            nx_state, rew, done, _ = self.env.step(action)
-            #print('nx_state', nx_state.shape)
-            #print('rew', rew.shape)
-            #print('done', done.shape, done.dtype)
-            
-            rew = self.rt(rew)
+            nx_state, rew, done, _ = self.env.step(action)           
+            rew = self.reward_transform(rew)
             
             self.curr_ep_rew += rew
             self.curr_ep_len[~done] +=1
             
             for j in range(self.n):
-                if done[j]:
-                    ep_rets[j].append(self.curr_ep_rew[j])
-                    ep_lens[j].append(self.curr_ep_len[j])
+                if done[j]==True:
+                    ep_rets[j].append(self.curr_ep_rew[j].item())
+                    ep_lens[j].append(self.curr_ep_len[j].item())
             
             self.curr_ep_rew[done] = 0.0
             self.curr_ep_len[done] = 0
             
             nextvpred = self.policy.predict_state_value(nx_state)
             nextvpred[done] = 0.0
-
 
             self.obs[i] = self.curr_state
             self.actions[i] = action
@@ -237,3 +239,19 @@ def estimate_Q(sampler, trajectory):
     trajectory['Q'] = Q
     return
     
+
+### Helpers ####
+
+def aggregate_experience(arr):
+    """
+    aggregate experiences from all envs 
+    each expr from one env can be used for one update
+    I want to expr from the same env to stick together
+    This means I need to tranpose the array so that
+    (nenvs, nsteps, ...)
+    so that when I reshape (C style) the array to merge the first two axes
+    the exprs from the same env are contiguous     
+    swap and then flatten axes 0 and 1
+    """
+    s = arr.shape
+    return arr.swapaxes(0, 1).reshape(s[0] * s[1], *s[2:])

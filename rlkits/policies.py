@@ -124,14 +124,14 @@ class PolicyWithValue:
         x = self.transform_input(x)
         with torch.no_grad():
             y = self.policy_net(x)
-            pi = self.dist(y)
+            dist = self.dist(y)
             
-        if pi is None:
+        if dist is None:
             print("Policy net blows up -- Bad")
             self.save_ckpt()
             
-        action = pi.sample()
-        log_prob = pi.log_prob(action)
+        action = dist.sample()
+        log_prob = dist.log_prob(action)
         return (
             action.numpy(), log_prob.numpy()
         )

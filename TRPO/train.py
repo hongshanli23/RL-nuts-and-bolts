@@ -21,9 +21,9 @@ def main():
         env=env,
         nsteps=128,
         total_timesteps=2*128*1000, 
-        log_dir='/home/ubuntu/logs/trpo/pendulum/32_32_32',
-        ckpt_dir='/home/ubuntu/logs/trpo/pendulum/32_32_32',
-        hidden_layers=[32,32,32],
+        log_dir='/home/ubuntu/logs/trpo/pendulum/256_512'
+        ckpt_dir='/home/ubuntu/logs/trpo/pendulum/256_512',
+        hidden_layers=[256, 512],
         activation=torch.nn.ReLU,
         )
     env.close()
