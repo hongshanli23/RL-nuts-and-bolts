@@ -1,14 +1,17 @@
 from rlkits.policies import RandomPolicyWithValue
 from rlkits.policies import PolicyWithValue
-#from rlkits.sampler import TrajectorySampler
+from rlkits.policies import PolicyWithValueSingleModel
 from rlkits.sampler import ParallelEnvTrajectorySampler
 from rlkits.sampler import estimate_Q
+from rlkits.env_batch import ParallelEnvBatch
+from rlkits.sampler import ParallelEnvTrajectorySampler
+from rlkits.env_wrappers import AutoReset, StartWithRandomActions
 
 import gym
 import pprint as pp
 import numpy as np
-
 import torch
+
 
 def test_sampler():
     print('Test TrajectorySampler')
@@ -55,16 +58,7 @@ def test_policy_with_value():
     print('distr means', dist.mean)
     return
 
-def test_parallel_env_sampler():
-    from rlkits.policies import PolicyWithValue
-    from rlkits.env_batch import ParallelEnvBatch
-    from rlkits.sampler import ParallelEnvTrajectorySampler
-    from rlkits.env_wrappers import AutoReset, StartWithRandomActions
-    from rlkits.sampler import estimate_Q
-    import numpy as np
-    import gym
-
-    
+def test_parallel_env_sampler():    
     def make_env():
         env = gym.make('CartPole-v0').unwrapped
         env = AutoReset(env)
@@ -83,16 +77,50 @@ def test_parallel_env_sampler():
     pi = PolicyWithValue(
         ob_space=ob_space, ac_space=ac_space, ckpt_dir='/tmp', 
         hidden_layers=[1024])
-
-
     samp = ParallelEnvTrajectorySampler(env, pi, 32)
-    
     for attr in ['obs', 'rews', 'vpreds', 'dones', 'actions', 'log_prob']:
         print(attr, getattr(samp, attr).shape)
     traj = samp(callback=estimate_Q)
     pp.pprint(traj)
     env.close()
     return
+
+
+def generate_env():
+    def make_env():
+        env = gym.make('CartPole-v0').unwrapped
+        env = AutoReset(env)
+        env = StartWithRandomActions(env, max_random_actions=5)
+        return env
+    
+    def reward_transform(rew):
+        return (rew + 8.0) / 16.0
+
+    env = ParallelEnvBatch(make_env, nenvs=4)
+    return env
+
+    
+
+def test_policy_with_one_backbone():
+    env = generate_env()
+    ob_space = env.observation_space
+    ac_space = env.action_space
+    
+    pi = PolicyWithValueSingleModel(
+        ob_space = ob_space,
+        ac_space = ac_space,
+        ckpt_dir = '/tmp',
+        hidden_layers = [1024]
+    )
+    
+    
+    samp = ParallelEnvTrajectorySampler(env, pi, 32)
+    for attr in ['obs', 'rews', 'vpreds', 'dones', 'actions', 'log_prob']:
+        print(attr, getattr(samp, attr).shape)
+    traj = samp(callback=estimate_Q)
+    pp.pprint(traj)
+    env.close()
+    return 
 
 
 def profile():
@@ -127,5 +155,6 @@ def profile():
 if __name__=='__main__':
     #test_sampler()
     #test_policy_with_value()
-    test_parallel_env_sampler()
+    #test_parallel_env_sampler()
     #profile()
+    test_policy_with_one_backbone()

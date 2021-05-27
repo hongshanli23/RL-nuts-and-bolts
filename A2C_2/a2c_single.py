@@ -1,4 +1,6 @@
-# A2C 
+# A2C
+# Use a single model for actor-critic agent
+# temp boiler-plate code. will go away soon
 
 from contextlib import contextmanager
 from collections import deque

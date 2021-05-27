@@ -35,3 +35,36 @@ class MLP(nn.Module):
         
     def forward(self, x):
         return self.layers(x)
+
+    
+class MLP2heads(nn.Module):
+    """A neural network with 2 heads
+    Used for actor-critic agent with a single backbone
+    """
+    def __init__(self, *, input_shape, policy_output_shape, 
+                 value_output_shape, 
+                 hidden_layers,
+                activation=torch.nn.Tanh):
+        super(MLP2heads, self).__init__()
+        
+        layers = []
+        
+        prev = input_shape
+        for h in hidden_layers:
+            layers.append(
+                ortho_init(nn.Linear(prev, h, bias=False))
+            )
+            layers.append(activation())
+            prev = h
+
+        self.layers = nn.Sequential(*layers)
+        self.policy_head = ortho_init(
+            nn.Linear(prev, policy_output_shape, bias=False)
+        )
+        self.value_head = ortho_init(
+            nn.Linear(prev, value_output_shape, bias=False)
+        )
+        
+    def forward(self, x):
+        y = self.layers(x)
+        return self.policy_head(y), self.value_head(y)

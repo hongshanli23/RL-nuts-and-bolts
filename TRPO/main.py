@@ -103,7 +103,6 @@ def pendulum_reward_transform(rew):
     """normalize to [-1, 1]"""
     return (rew + 8.0)/16.0 
 
-
 def sf01(arr):
     """
     aggregate experiences from all envs 
@@ -117,7 +116,6 @@ def sf01(arr):
     """
     s = arr.shape
     return arr.swapaxes(0, 1).reshape(s[0] * s[1], *s[2:])
-
 
 def TRPO(*, 
         env, 
