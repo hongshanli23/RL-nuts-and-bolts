@@ -155,8 +155,7 @@ class PolicyWithValueSingleModel:
             os.makedirs(self.ckpt_dir)
 
         ckpt = {
-            "policy_net": self.policy_net.state_dict(),
-            "value_net": self.value_net.state_dict(),
+            "model": self.model.state_dict(),
         }
 
         torch.save(ckpt, os.path.join(self.ckpt_dir, "ckpt.pth"))

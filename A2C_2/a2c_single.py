@@ -16,7 +16,7 @@ import sys
 from rlkits.sampler import ParallelEnvTrajectorySampler
 from rlkits.sampler import estimate_Q
 from rlkits.sampler import aggregate_experience
-from rlkits.policies import PolicyWithValue
+from rlkits.policies import PolicyWithValueSingleModel
 import rlkits.utils as U
 from rlkits.utils import colorize
 import rlkits.utils.logger as logger
@@ -32,7 +32,10 @@ def compute_loss(pi, trajectory, log_dir):
     """Compute loss for policy and value net"""
     obs = trajectory['obs']
     obs = torch.from_numpy(obs)
-    dist = pi.dist(pi.policy_net(obs))
+    
+    piparams, vpreds = pi.model(obs)
+    
+    dist = pi.dist(piparams)
     
     if dist is None:
         logger.log('Got Nan -- Bad')
@@ -53,7 +56,6 @@ def compute_loss(pi, trajectory, log_dir):
    
     pi_loss = -log_prob * adv 
     
-    vpreds = pi.value_net(obs)
     Q = torch.from_numpy(trajectory['Q'])
     if len(vpreds.shape) > 1:
         vpreds = vpreds.squeeze(dim=1)
@@ -75,7 +77,6 @@ def A2C(
     nsteps,
     total_timesteps,
     pi_lr,
-    v_lr,
     ent_coef,
     log_interval,
     max_grad_norm,
@@ -93,14 +94,14 @@ def A2C(
     ob_space = env.observation_space
     ac_space = env.action_space
 
-    pi = PolicyWithValue(ob_space=ob_space,
-        ac_space=ac_space, ckpt_dir=ckpt_dir,
+    pi = PolicyWithValueSingleModel(
+        ob_space=ob_space,
+        ac_space=ac_space, 
+         ckpt_dir=ckpt_dir,
         **network_kwargs)
     
-    poptimizer = optim.Adam(pi.policy_net.parameters(),
-        lr=pi_lr)
-    voptimizer = optim.Adam(pi.value_net.parameters(),
-        lr=v_lr)
+    optimizer = optim.Adam(pi.model.parameters(),lr=pi_lr)
+ 
 
     sampler = ParallelEnvTrajectorySampler(env, pi, nsteps, 
         reward_transform=reward_transform) # hard-coded for pendulum
@@ -137,17 +138,14 @@ def A2C(
             - ent_coef * frac * losses['entropy']
         
         
-        poptimizer.zero_grad()
-        voptimizer.zero_grad()
+        optimizer.zero_grad()
         loss.backward()
         
-        clip_grad_norm_(pi.policy_net.parameters(), 
-                       max_norm=max_grad_norm)
-        clip_grad_norm_(pi.value_net.parameters(), 
-                        max_norm=max_grad_norm)
+        clip_grad_norm_(pi.model.parameters(), max_norm=max_grad_norm)
+    
         
-        poptimizer.step()
-        voptimizer.step()
+        optimizer.step()
+
         
         tnow = time.perf_counter()
         fps = int(nframes / (tnow - tstart)) # frames per seconds
@@ -177,10 +175,8 @@ def A2C(
             logger.record_tabular('explained_variance', ev)
 
 
-            piw, vw = pi.average_weight()
-            logger.record_tabular('policy_net_weight', piw.numpy())
-            logger.record_tabular('value_net_weight', vw.numpy())
-
+            w = pi.average_weight()
+            logger.record_tabular('average param', w.numpy())
  
             vqdiff = np.mean((trajectory['Q'] - trajectory['vpreds'])**2)
             
@@ -199,8 +195,7 @@ def A2C(
             logger.dump_tabular()
 
             pi.save_ckpt()
-            torch.save(poptimizer, os.path.join(ckpt_dir, 'optim.pth'))
-            torch.save(voptimizer, os.path.join(ckpt_dir, 'optim.pth'))
+            torch.save(optimizer, os.path.join(ckpt_dir, 'optim.pth'))
     return
 
 
@@ -218,20 +213,19 @@ if __name__ == '__main__':
         env = StartWithRandomActions(env, max_random_actions=5)
         return env
     
-    env=ParallelEnvBatch(make_env, nenvs=1)
+    env=ParallelEnvBatch(make_env, nenvs=4)
     
     A2C(
         env=env,
         nsteps=32,
-        total_timesteps=32*1*10000,
+        total_timesteps=32*4*1000,
         pi_lr=1e-4,
-        v_lr=1e-4,
-        ent_coef=1e-1,
+        ent_coef=1e-2,
         log_interval=10,
         max_grad_norm=0.1,
         reward_transform=None,
-        log_dir='/home/ubuntu/tmp/logs/a2c/cartpole',
-        ckpt_dir='/home/ubuntu/tmp/logs/a2c/cartpole',
+        log_dir='/home/ubuntu/tmp/logs/a2c/cartpole/0',
+        ckpt_dir='/home/ubuntu/tmp/logs/a2c/cartpole/0',
         hidden_layers=[256, 512],
         activation=torch.nn.ReLU
     )
