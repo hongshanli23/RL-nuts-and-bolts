@@ -10,10 +10,14 @@ from model import MLPSingleArch
 
 import numpy as np
 import gym
+import time
 
 import torch
 from torch.utils.tensorboard import SummaryWriter
 from torch.nn.utils import clip_grad_norm_
+
+import rlkits.utils.logger as logger
+from rlkits.utils.math import explained_variance
 
 
 def evaluate(env, agent, max_steps=1000)-> int:
@@ -38,7 +42,7 @@ def evaluate(env, agent, max_steps=1000)-> int:
         state = nx_state
     return total_reward
 
-def evalute_critic(agent)->float:
+def evaluate_critic(agent)->float:
     env = gym.make('CartPole-v0').unwrapped
     env.seed(10)
     return agent.get_value(env.reset())
@@ -55,7 +59,6 @@ def make_env():
 
 def a2c(h, decay_fn=None):
     """Train an agent with A2C algorithm"""
-    
     reward_tracker = AverageEpisodicRewardTracker(h['nenvs'])
     env = ParallelEnvBatch(make_env, nenvs=h['nenvs'])
 
@@ -64,14 +67,17 @@ def a2c(h, decay_fn=None):
         n_actions=env.action_space.n
     )
     
-    writer = Logger(h['log_dir'])
+    #writer = Logger(h['log_dir'])
+    logger.configure(h['log_dir'])
     
     agent = Agent(model, h)
     sampler = TrajectorySampler(env, agent)
     
-    for i in range(h['n_iters']):
-        trajectory = sampler(h['nsteps'])
+    start = time.perf_counter()
+    for i in range(1, h['n_iters']+1):
+        tstart = time.perf_counter()
         
+        trajectory = sampler(h['nsteps'])
         Q = estimate_Q(agent, trajectory, h['gamma'], h['nenvs'])
         
         batch_reward = np.zeros((h['nsteps'], h['nenvs']), dtype=np.float32)
@@ -82,7 +88,6 @@ def a2c(h, decay_fn=None):
             batch_done[j] = e.done
             
         reward_tracker.update(batch_reward, batch_done)
-    
         
         # compute loss
         ld = compute_loss(trajectory, Q, h['device'])
@@ -101,28 +106,69 @@ def a2c(h, decay_fn=None):
         loss.backward()
         
         if h['clip_grad_norm']:
-            clip_grad_norm_(agent.model.parameters(), h['clip_grad_norm'])        
+            clip_grad_norm_(agent.model.parameters(), 0.1)        
         agent.optimizer.step()
         
+        tnow = time.perf_counter()
+        fps = int(h['nenvs']*len(trajectory) / (tnow - tstart))
         # logging
-        writer.add_scalar('loss', float(loss), i)
-        writer.add_scalar('p_loss', float(p_loss), i)
-        writer.add_scalar('v_loss', float(v_loss), i)
-        writer.add_scalar('entropy', float(entropy), i)
-        writer.add_scalar('adv', float(torch.mean(adv)), i)
-        writer.add_scalar('log_pi_a', float(torch.mean(log_pi_a)), i)
-        writer.add_scalar('ma_rew', float(reward_tracker.query().mean()), i)
-        
-        if h['evalute_critic']:
-            v = evalute_critic(agent)
-            writer.add_scalar('init_state_estimate', v.mean(), i)
-
         if i % h['ckpt_interval'] == 0:
-            agent.save_ckpt(i)
+            logger.record_tabular('FPS', fps)
+            logger.record_tabular('iter/niters', f"{i}/{h['n_iters']}")
+            logger.record_tabular('average_param', agent.model_weight())
+            logger.record_tabular('policy_loss', p_loss.detach().numpy())
+            logger.record_tabular('value_loss', v_loss.detach().numpy())
+            logger.record_tabular('entropy', entropy.detach().numpy())
+            
+            # aggregate V
+            vpreds = [e.v.detach().numpy() for e in trajectory]
+            vpreds = np.array(vpreds)
+            vpreds = np.squeeze(vpreds, axis=2)
+            assert vpreds.shape == Q.shape, f'vpreds shape: {vpreds.shape}, Q shape: {Q.shape}'
+            vpreds = vpreds.transpose(1, 0).ravel()
+            Q = Q.transpose(1, 0).ravel()
+            
+            logger.record_tabular('vpreds', vpreds.mean())
+            logger.record_tabular('Q', Q.mean())
+            
+            vqdiff = np.mean((Q - vpreds)**2)
+            logger.record_tabular('vqdiff', vqdiff)
+            
+            ev = explained_variance(vpreds, Q)
+            logger.record_tabular('explained_var', ev)
+            
+            ma_rew = reward_tracker.query().mean()
+            logger.record_tabular('ma_rew', ma_rew)
+            
+            if h['evaluate_critic']:
+                logger.record_tabular('init_est', evaluate_critic(agent).mean())
+            logger.dump_tabular()
     
+    end = time.perf_counter()
+    logger.log(f"Total training time: {end - start}")
     agent.save_ckpt(i)
-    writer.save()
+    env.close()
     return agent
 
 
+
+if __name__ == '__main__':
+    h = {
+        "n_iters": 10000,
+        "ckpt_interval": 10,
+        "nenvs":16,
+        "nsteps" : 32, # length of trajectory
+        "entropy_coef" : 0.01, #1e-4, 
+        "learning_rate": 1e-4,
+        "p_coef": 1.0,
+        "v_coef":1.0,
+        "gamma": 0.99,
+        "device": "cpu",
+        "clip_grad_norm": True,
+        "evaluate_critic": True,
+        "ckpt_dir": '/home/ubuntu/tmp/A2C/ckpt/debug/1', # to be changed 
+        "log_dir": '/home/ubuntu/tmp/A2C/log/debug/1' # to be changed
+    }
+    
+    a2c(h)
     

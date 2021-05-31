@@ -61,10 +61,9 @@ class Logger:
     """Log metrics during an experiment"""
     def __init__(self, log_dir:str):
         self.log_dir = log_dir # unique for each experiment
-        
         self._data = defaultdict(list)
         self.file_path = os.path.join(self.log_dir,
-                                      'experiment-data.pkl')
+                    'experiment-data.pkl')
         
         self.tb = SummaryWriter(log_dir=self.log_dir)
 

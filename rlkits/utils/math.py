@@ -14,7 +14,7 @@ def explained_variance(ypred,y):
         ev<0  =>  worse than just predicting zero
 
     """
-    assert y.ndim == 1 and ypred.ndim == 1
+    assert y.shape == ypred.shape, f"\n {y.shape}, \n{ypred.shape}"
     vary = np.var(y)
     return np.nan if vary==0 else 1 - np.var(y-ypred)/vary
         

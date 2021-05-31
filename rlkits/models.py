@@ -2,7 +2,7 @@ import torch
 import torch.nn as nn
 import math
 
-def ortho_init(m: nn.Module, init_scale=math.sqrt(0.5)):
+def ortho_init(m: nn.Module, init_scale=math.sqrt(2)):
     """In place orthogonal initialization"""
     nn.init.orthogonal_(m.weight, gain=init_scale)
     #torch.nn.init.sparse_(m.weight, sparsity=0.9, std=0.01)
@@ -22,13 +22,13 @@ class MLP(nn.Module):
         prev = input_shape
         for h in hidden_layers:
             layers.append(
-                ortho_init(nn.Linear(prev, h, bias=False))
+                ortho_init(nn.Linear(prev, h))
             )
             layers.append(activation())
             prev = h
 
         layers.append(
-            ortho_init(nn.Linear(prev, output_shape, bias=False)
+            ortho_init(nn.Linear(prev, output_shape)
             ))
         
         self.layers = nn.Sequential(*layers)
@@ -52,17 +52,17 @@ class MLP2heads(nn.Module):
         prev = input_shape
         for h in hidden_layers:
             layers.append(
-                ortho_init(nn.Linear(prev, h, bias=False))
+                ortho_init(nn.Linear(prev, h))
             )
             layers.append(activation())
             prev = h
 
         self.layers = nn.Sequential(*layers)
         self.policy_head = ortho_init(
-            nn.Linear(prev, policy_output_shape, bias=False)
+            nn.Linear(prev, policy_output_shape)
         )
         self.value_head = ortho_init(
-            nn.Linear(prev, value_output_shape, bias=False)
+            nn.Linear(prev, value_output_shape)
         )
         
     def forward(self, x):

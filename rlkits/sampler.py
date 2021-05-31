@@ -97,6 +97,7 @@ class TrajectorySampler:
         # compute estimate state action value
         Gt = self.nextvpreds[-1]
         for t in reversed(range(self.nsteps)):
+            not_done = ~self.dones[t]
             self.Q[t] = self.rews[t] + self.gamma * Gt
             Gt = self.Q[t]
         
@@ -194,8 +195,7 @@ class ParallelEnvTrajectorySampler:
             self.curr_ep_len[done] = 0
             
             nextvpred = self.policy.predict_state_value(nx_state)
-            nextvpred[done] = 0.0
-
+         
             self.obs[i] = self.curr_state
             self.actions[i] = action
             self.log_prob[i] = log_prob
@@ -206,6 +206,13 @@ class ParallelEnvTrajectorySampler:
             self.total_timesteps+=self.n
             
             self.curr_state = nx_state
+            
+        # add the curr_ep_rew to each ep_rets
+        # add curr_ep_len to each ep_lens
+        for j in range(self.n):
+            ep_rets[j].append(self.curr_ep_rew[j])
+            ep_lens[j].append(self.curr_ep_len[j])
+        
         
         trajectory = {
             "obs" : self.obs,
@@ -233,12 +240,11 @@ def estimate_Q(sampler, trajectory):
     
     Gt = sampler.nextvpreds[-1]
     for t in reversed(range(sampler.nsteps)):
-        Q[t] = sampler.rews[t] + sampler.gamma * Gt
+        not_done = ~trajectory['dones'][t]
+        Q[t] = sampler.rews[t] + sampler.gamma * Gt * not_done
         Gt = Q[t]
-    
     trajectory['Q'] = Q
     return
-    
 
 ### Helpers ####
 

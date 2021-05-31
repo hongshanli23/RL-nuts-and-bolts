@@ -106,12 +106,14 @@ class PolicyWithValueSingleModel:
     
     def average_weight(self):
         """Get average weight of the policy and value net"""
-        pi = 0.0 
-        cnt = 0
+        n = 0
+        total_weights = 0
         for p in self.model.parameters():
-            pi += p.data.mean()
-        return pi
-        
+            total_weights+=p.data.sum()
+            n+=p.numel()
+            
+        return (total_weights / n)
+
     
     def dist(self, params):
         """Get a distribution of actions"""
@@ -121,6 +123,9 @@ class PolicyWithValueSingleModel:
             if not all(torch.isfinite(mean)) or not all(
                 torch.isfinite(logstd)):
                 return None
+            assert mean.ndim == 2, mean.shape
+            assert logstd.ndim ==2, logstd.shape
+            
             return Normal(mean, torch.exp(logstd))
         else:
             # apply softmax to the output

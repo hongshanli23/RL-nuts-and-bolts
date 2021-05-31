@@ -5,10 +5,14 @@ import numpy as np
 from numpy.testing import assert_equal
 
 
-h = {
-    "n_iters": 10,
-    "eval_interval": 1000,
-    "ckpt_interval": 1000,
+
+
+
+
+def test_a2c():
+    h = {
+    "n_iters": 1000,
+    "ckpt_interval": 10,
     "nsteps" : 30, # length of trajectory
     "entropy_coef" : 0.01, #1e-4, 
     "learning_rate": 1e-4,
@@ -16,12 +20,12 @@ h = {
     "v_coef":1.0,
     "gamma": 0.99,
     "device": "cpu",
-    "nenvs": 16,
-    "ckpt_dir": 'ckpt/debug',
-    "log_dir": 'log/debug'
-}
-
-def test_a2c():
+    "clip_grad_norm": True,
+    "evaluate_critic": True,
+    "ckpt_dir": '/tmp/ckpt/debug', # to be changed 
+    "log_dir": '/tmp/log/debug' # to be changed
+    }
+    
     a2c(h)
     return
 

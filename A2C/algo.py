@@ -43,6 +43,16 @@ class Agent:
         self.optimizer = optim.Adam(self.model.parameters(), 
             lr=h['learning_rate'])
         self.h = h
+        
+    def model_weight(self):
+        """Get the average weight of model parameter"""
+        n = 0
+        total_weights = 0
+        for p in self.model.parameters():
+            total_weights+=p.data.sum()
+            n+=p.numel()
+            
+        return (total_weights / n).numpy()
 
     def parse_input(self, x):
         """
@@ -91,7 +101,7 @@ class Agent:
         Args:
             x: current state
             
-        return:
+        Return:
             (float) V(s)
 
         Q: is it better to clip v to certain range ?

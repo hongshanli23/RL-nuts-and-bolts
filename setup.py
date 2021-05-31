@@ -22,8 +22,16 @@ for group_name in extras:
 extras['all'] = all_deps
 
 setup(name='rlkits',
-      packages=[package for package in find_packages()
-                if package.startswith('nbutils')],
+      packages=[
+          'rlkits',
+          'A2C',
+          'A2C_2',
+          'TRPO',
+          'PPO'
+          
+          #package for package in find_packages()
+          #      if package.startswith('')
+      ],
       install_requires=[
           'gym==0.14'
       ],
