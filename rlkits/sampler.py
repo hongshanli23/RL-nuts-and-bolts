@@ -248,6 +248,8 @@ def estimate_Q(sampler, trajectory):
 
 ### Helpers ####
 
+
+
 def aggregate_experience(arr):
     """
     aggregate experiences from all envs 
@@ -261,3 +263,16 @@ def aggregate_experience(arr):
     """
     s = arr.shape
     return arr.swapaxes(0, 1).reshape(s[0] * s[1], *s[2:])
+
+def shuffle_experience(trajectory):
+    """Shuffle the experience in-place
+    
+    trajectory: dictionary of aggregated experience
+    """
+    idx = np.array(range(len(trajectory['obs'])))
+    np.random.shuffle(idx)
+    
+    for k, v in trajectory.items():
+        if isinstance(v, np.ndarray):
+            trajectory[k] = v[idx]
+    return trajectory

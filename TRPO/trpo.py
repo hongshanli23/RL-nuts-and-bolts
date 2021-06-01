@@ -1,6 +1,6 @@
 # TRPO algorithm 
 
-from rlkits.sampler import estimate_Q
+from rlkits.sampler import estimate_Q, aggregate_experience
 from rlkits.sampler import ParallelEnvTrajectorySampler
 
 from rlkits.policies import PolicyWithValue
@@ -99,30 +99,30 @@ def sync_policies(oldpi, pi):
     oldpi.value_net.load_state_dict(pi.value_net.state_dict())
     return
 
+
+def policy_diff(oldpi, pi):
+    """Compute the average distance between params of oldpi and pi"""
+    diff = 0.0
+    cnt = 0
+    for p1, p2 in zip(oldpi.policy_net.parameters(), pi.policy_net.parameters()):
+        diff += torch.mean(torch.abs(p1.data - p2.data))
+        cnt +=1
+    return diff / cnt
+        
 def pendulum_reward_transform(rew):
     """normalize to [-1, 1]"""
     return (rew + 8.0)/16.0 
 
-def sf01(arr):
-    """
-    aggregate experiences from all envs 
-    each expr from one env can be used for one update
-    I want to expr from the same env to stick together
-    This means I need to tranpose the array so that
-    (nenvs, nsteps, ...)
-    so that when I reshape (C style) the array to merge the first two axes
-    the exprs from the same env are contiguous     
-    swap and then flatten axes 0 and 1
-    """
-    s = arr.shape
-    return arr.swapaxes(0, 1).reshape(s[0] * s[1], *s[2:])
 
 def TRPO(*, 
         env, 
         nsteps, 
         total_timesteps, 
+        log_interval,
         log_dir, 
         ckpt_dir,
+        reward_transform,
+        gamma=0.99,
         max_kl=1e-2,
         cg_iters=10, 
         cg_damping=1e-2, 
@@ -155,7 +155,13 @@ def TRPO(*,
         lr=v_lr)
 
     # env sampler
-    sampler = ParallelEnvTrajectorySampler(env, pi, nsteps, pendulum_reward_transform)
+    sampler = ParallelEnvTrajectorySampler(
+        env=env, 
+        policy=pi,
+        nsteps=nsteps, 
+        reward_transform=reward_transform,
+        gamma=gamma
+    )
     
     def fisher_vector_product(p):
         """Fisher vector product
@@ -163,9 +169,18 @@ def TRPO(*,
         """
         return compute_fvp(oldpi, pi, trajectory['obs'], p) + cg_damping*p
     
-    rolling_buf_episode_rets = deque(maxlen=10) # moving average of last 10 episode returns
-    rolling_buf_episode_lens = deque(maxlen=10)  # moving average of last 10 episode length
-    while sampler.total_timesteps < total_timesteps:
+    
+    best_ret = np.float('-inf')
+    
+    rolling_buf_episode_rets = deque(maxlen=10) 
+    rolling_buf_episode_lens = deque(maxlen=10)
+    
+    start = time.perf_counter()
+    
+    nframes = nsteps * env.nenvs
+    nupdates = total_timesteps // (nframes)
+    for update in range(1, nupdates + 1):
+        tstart = time.perf_counter()
         # oldpi <- pi
         sync_policies(oldpi, pi)
         trajectory = sampler(callback=estimate_Q)
@@ -173,14 +188,11 @@ def TRPO(*,
         # aggregate exps from parallel envs
         for k, v in trajectory.items():
             if isinstance(v, np.ndarray):
-                trajectory[k] = sf01(v)
+                trajectory[k] = aggregate_experience(v)
         
         # losses before update (has gradient)
         lossesbefore = compute_losses(oldpi, pi, trajectory)
-
-        for k, v in lossesbefore.items():
-            logger.record_tabular(k, np.mean(v.detach().numpy()))
-
+        
         # estimate policy gradient of pi
         g = torch.autograd.grad(lossesbefore['surr_gain'], 
             pi.policy_net.parameters())
@@ -191,7 +203,7 @@ def TRPO(*,
             continue
 
         with timed('conjugate gradient'):
-            npg = conjugate_gradient(
+            npg, cginfo = conjugate_gradient(
                 fisher_vector_product, g, 
                 cg_iters=cg_iters, verbose=True)
         assert torch.isfinite(npg).all()
@@ -227,13 +239,7 @@ def TRPO(*,
         else:
             logger.log('Canot find a good step size, resume to the old poliy')
             U.set_from_flat(pi.policy_net, params0)
-        
-
-        vqdiff = np.mean((trajectory['Q'] - trajectory['vpreds'])**2)
-        logger.record_tabular('VQDiff', vqdiff)
-        logger.record_tabular('Q', np.mean(trajectory['Q']))
-        logger.record_tabular('vpreds', np.mean(trajectory['vpreds']))
-        
+                
         # update value net
         obs, Q = trajectory['obs'], trajectory['Q']
         obs, Q = torch.from_numpy(obs), torch.from_numpy(Q)
@@ -245,25 +251,104 @@ def TRPO(*,
                 voptimizer.zero_grad()
                 vloss.backward()
                 voptimizer.step()
+                
+        tnow = time.perf_counter()
         
-        # more logging
-        
-        for ep_rets in trajectory['ep_rets']:
-            rolling_buf_episode_rets.extend(ep_rets)
+        # logging
+        if update % log_interval == 0 or update == 1:
+            fps = int(nframes // (tnow - tstart))
+            logger.record_tabular('FPS', fps)
+            
+            # policy loss
+            for k, v in lossesbefore.items():
+                logger.record_tabular(k, np.mean(v.detach().numpy()))
+            
+            # conjugate gradient info
+            for k, v in cginfo.items():
+                logger.record_tabular(k, v)
+            
+            # weights
+            piw, vw = pi.average_weight()
+            logger.record_tabular('policy_net_weight', piw.numpy())
+            logger.record_tabular('value_net_weight', vw.numpy())
+            
+            # step size as the change in policy params
+            step_size = policy_diff(oldpi, pi)
+            logger.record_tabular('step_size', step_size.numpy())
 
-        for ep_lens in trajectory['ep_lens']:
-            rolling_buf_episode_lens.extend(ep_lens)
+            vqdiff = np.mean((trajectory['Q'] - trajectory['vpreds'])**2)
+            logger.record_tabular('VQDiff', vqdiff)
+            logger.record_tabular('Q', np.mean(trajectory['Q']))
+            logger.record_tabular('vpreds', np.mean(trajectory['vpreds']))
 
-        
-        logger.record_tabular("MAEpRet", safemean(rolling_buf_episode_rets))
-        logger.record_tabular('MAEpLen', safemean(rolling_buf_episode_lens))
-        logger.record_tabular('MeanStepRew', np.mean(trajectory['rews']))
-        
-        logger.dump_tabular()
+            # more logging
+            for ep_rets in trajectory['ep_rets']:
+                rolling_buf_episode_rets.extend(ep_rets)
 
-    pi.save_ckpt()
+            for ep_lens in trajectory['ep_lens']:
+                rolling_buf_episode_lens.extend(ep_lens)
+
+            ret =  safemean(rolling_buf_episode_rets)
+            
+            logger.record_tabular("ma_ep_ret", ret)
+            logger.record_tabular('ma_ep_len', 
+                                  safemean(rolling_buf_episode_lens))
+            logger.record_tabular('mean_rew_step', 
+                                  np.mean(trajectory['rews']))
+            
+            
+            if ret != np.nan and ret > best_ret:
+                best_ret = ret
+                pi.save_ckpt('best')
+                
+            logger.dump_tabular()
+    
+    
+    now = time.perf_counter()
+    
+    logger.log(f'Total training time: {now - start}')
+    pi.save_ckpt('last')
     torch.save(voptimizer, os.path.join(ckpt_dir, 'optim.pth'))
     return 
 
 def safemean(l):
     return np.nan if len(l) == 0 else np.mean(l)
+
+
+if __name__ == '__main__':
+    from rlkits.env_batch import ParallelEnvBatch
+    from rlkits.env_wrappers import AutoReset, StartWithRandomActions
+    
+    
+    def stochastic_reward(rew):
+        eps = np.random.normal(loc=0.0, scale=0.1, size=rew.shape)
+        return rew + eps
+    
+    def make_env():
+        env = gym.make('CartPole-v0').unwrapped
+        env = AutoReset(env)
+        env = StartWithRandomActions(env, max_random_actions=5)
+        return env
+    
+    nenvs = 16
+    env = ParallelEnvBatch(make_env, nenvs=nenvs)
+    
+    TRPO(
+        env=env,
+        nsteps=32, 
+        total_timesteps=nenvs*32*10000,
+        gamma=0.99,
+        log_interval=10,
+        reward_transform=None,
+        log_dir='/home/ubuntu/reinforcement-learning/experiments/TRPO/8',
+        ckpt_dir='/home/ubuntu/reinforcement-learning/experiments/TRPO/8',
+        max_kl=1e-3,
+        cg_iters=20,
+        cg_damping=1e-2,
+        backtrack_steps=10,
+        v_iters=1,
+        batch_size=nenvs*32,
+        v_lr=1e-4,
+        hidden_layers=[32, 32, 32],
+        activation=torch.nn.ReLU
+    )

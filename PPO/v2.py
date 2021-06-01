@@ -176,6 +176,7 @@ def PPO_clip(*,
     nframes = env.nenvs * nsteps # number of frames processed by update iter
     nupdates = total_timesteps // nframes
     
+    start = time.perf_counter()
     
     for update in range(1, nupdates+1):
         tstart = time.perf_counter()
@@ -247,8 +248,8 @@ def PPO_clip(*,
 
 
             piw, vw = pi.average_weight()
-            logger.record_tabular('PolicyNetAvgW', piw.numpy())
-            logger.record_tabular('ValueNetAvgW', vw.numpy())
+            logger.record_tabular('policy_net_average_param', piw.numpy())
+            logger.record_tabular('value_net_average_param', vw.numpy())
 
             logger.record_tabular('loss', np.mean(lossvals))
 
@@ -259,15 +260,21 @@ def PPO_clip(*,
             logger.record_tabular('vpreds', np.mean(trajectory['vpreds']))
             
             logger.record_tabular('FPS', fps)
-            logger.record_tabular("MAEpRet", safemean(rolling_buf_episode_rets))
-            logger.record_tabular('MAEpLen', safemean(rolling_buf_episode_lens))
-            logger.record_tabular('MeanStepRew', safemean(trajectory['rews']))
+            
+            
+            logger.record_tabular("ma_ep_ret", safemean(rolling_buf_episode_rets))
+            logger.record_tabular('ma_ep_len', safemean(rolling_buf_episode_lens))
+            logger.record_tabular('mean_step_rew', safemean(trajectory['rews']))
 
             logger.dump_tabular()
 
             pi.save_ckpt()
             torch.save(poptimizer, os.path.join(ckpt_dir, 'optim.pth'))
             torch.save(voptimizer, os.path.join(ckpt_dir, 'optim.pth'))
+    
+    end = time.perf_counter()
+    
+    logger.log(f'Total training time: {end - start}')
     return
 
 def safemean(l):
@@ -283,25 +290,27 @@ if __name__ == '__main__':
         env = StartWithRandomActions(env, max_random_actions=5)
         return env
     
-    env=ParallelEnvBatch(make_env, nenvs=4)
+    nenvs = 16
+    
+    env=ParallelEnvBatch(make_env, nenvs=nenvs)
     
     PPO_clip(
         env=env,
         nsteps=32,
-        total_timesteps=4*32*1000, 
+        total_timesteps=nenvs*32*10000, 
         eps = 0.2,
         pi_lr=1e-4,
         v_lr = 1e-4,
         ent_coef=0.1,
         epochs=1,
-        batch_size=64, 
+        batch_size=nenvs*8, 
         log_interval=10,
         max_grad_norm=0.1,
         reward_transform=None,
-        log_dir='/home/ubuntu/tmp/logs/ppo/cartpole',
-        ckpt_dir='/home/ubuntu/tmp/models/ppo/cartpole',
+        log_dir='/home/ubuntu/reinforcement-learning/experiments/ppo/0',
+        ckpt_dir='/home/ubuntu/reinforcement-learning/experiments/ppo/0',
         hidden_layers=[256, 512],
-        activation=torch.nn.Tanh, 
+        activation=torch.nn.ReLU, 
         )
     
     env.close()

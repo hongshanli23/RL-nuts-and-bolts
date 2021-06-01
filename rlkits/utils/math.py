@@ -1,6 +1,6 @@
 import numpy as np
 import torch
-from torch.distributions import Normal
+from torch.distributions import Normal, Categorical
 
 
 def explained_variance(ypred,y):
@@ -45,7 +45,13 @@ def conjugate_gradient(f_Ax, b, cg_iters=10, verbose=False, residual_tol=1e-10):
             break
     
     if verbose: print(fmtstr % (i+1, rr, np.linalg.norm(x.numpy())))
-    return x
+        
+    info = {
+        "cgiters": i,
+        "residual_norm": rr.numpy(),
+        "soln_norm": np.linalg.norm(x.numpy())
+    }
+    return x, info
         
 
     
@@ -64,9 +70,23 @@ def _KL_normal(dist1:Normal, dist2:Normal):
     )
     return kl
 
+
+def _KL_categorical(dist1: Categorical, dist2: Categorical):
+    """KL(P || Q) where
+    dist1: P
+    dist2: Q
+    P, Q are categocial
+    """
+    p = dist1.probs
+    q = dist2.probs
+    kl = torch.sum(p*(torch.log(p) - torch.log(q)))
+    return kl
+
     
 def KL(dist1, dist2):
     """compute KL(dist1 || dist2)"""
     if isinstance(dist1, Normal) and isinstance(dist2, Normal):
         return _KL_normal(dist1, dist2)
+    elif isinstance(dist1, Categorical) and isinstance(dist2, Categorical):
+        return _KL_categorical(dist1, dist2)
         

@@ -78,7 +78,6 @@ class PolicyWithValueSingleModel:
         if self.ac_space.dtype == np.float32:
             self.continuous = True
             
-
         if self.continuous:
             # output is the mean and std of a Gaussian dist
             policy_output_shape = 2
@@ -155,7 +154,7 @@ class PolicyWithValueSingleModel:
             v = self.value_net(x)
         return v.numpy().squeeze(axis=1)
     
-    def save_ckpt(self):
+    def save_ckpt(self, posfix=''):
         if not os.path.exists(self.ckpt_dir):
             os.makedirs(self.ckpt_dir)
 
@@ -167,7 +166,7 @@ class PolicyWithValueSingleModel:
         return
 
     def load_ckpt(self, ckpt_dir):
-        ckpt = torch.load(os.path.join(ckpt_dir, "ckpt.pth"))
+        ckpt = torch.load(os.path.join(ckpt_dir, f"ckpt-{postfix}.pth"))
         self.model.load_state_dict(ckpt['model'])
         return
     
@@ -214,11 +213,13 @@ class PolicyWithValue:
             self.continuous = True
 
         if self.continuous:
+            print('Continous action space')
             # output is the mean and std of a Gaussian dist
             self.policy_net = MLP(
                 input_shape=self.input_dim, output_shape=2, **network_kwargs
             )
         else:
+            print('Discrete action space')
             # output is the input of a categorical probability dist
             self.policy_net = MLP(
                 input_shape=self.input_dim,
@@ -296,7 +297,7 @@ class PolicyWithValue:
             prob = torch.softmax(params, dim=-1)
             return Categorical(prob)
 
-    def save_ckpt(self):
+    def save_ckpt(self, postfix=''):
         if not os.path.exists(self.ckpt_dir):
             os.makedirs(self.ckpt_dir)
 
@@ -305,11 +306,11 @@ class PolicyWithValue:
             "value_net": self.value_net.state_dict(),
         }
 
-        torch.save(ckpt, os.path.join(self.ckpt_dir, "ckpt.pth"))
+        torch.save(ckpt, os.path.join(self.ckpt_dir, f"ckpt-{postfix}.pth"))
         return
 
-    def load_ckpt(self, ckpt_dir):
-        ckpt = torch.load(os.path.join(ckpt_dir, "ckpt.pth"))
+    def load_ckpt(self, ckptfile):
+        ckpt = torch.load(ckptfile)
         self.policy_net.load_state_dict(ckpt["policy_net"])
         self.value_net.load_state_dict(ckpt["value_net"])
         return

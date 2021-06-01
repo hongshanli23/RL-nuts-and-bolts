@@ -14,6 +14,7 @@ import sys
 from rlkits.sampler import ParallelEnvTrajectorySampler
 from rlkits.sampler import estimate_Q
 from rlkits.sampler import aggregate_experience
+from rlkits.sampler import shuffle_experience
 from rlkits.policies import PolicyWithValue
 import rlkits.utils as U
 from rlkits.utils import colorize
@@ -56,11 +57,7 @@ def compute_loss(pi, trajectory, log_dir):
     if len(vpreds.shape) > 1:
         vpreds = vpreds.squeeze(dim=1)
     assert vpreds.shape == Q.shape, f"vpreds shape: {vpreds.shape}, Q shape : {Q.shape}"
-    
-
     v_loss = F.mse_loss(vpreds, Q)
-    
-    
     return {
         "pi_loss" : pi_loss.mean(),
         "v_loss"  : v_loss.mean(),
@@ -68,9 +65,27 @@ def compute_loss(pi, trajectory, log_dir):
     }
 
 
+def sync_policies(oldpi, pi):
+    # oldpi <- pi
+    oldpi.policy_net.load_state_dict(pi.policy_net.state_dict())
+    oldpi.value_net.load_state_dict(pi.value_net.state_dict())
+    return
+
+
+def policy_diff(oldpi, pi):
+    """Compute the average distance between params of oldpi and pi"""
+    diff = 0.0
+    cnt = 0
+    for p1, p2 in zip(oldpi.policy_net.parameters(), pi.policy_net.parameters()):
+        diff += torch.mean(torch.abs(p1.data - p2.data))
+        cnt +=1
+    return diff / cnt
+        
+
 def A2C(
     env, 
     nsteps,
+    gamma, 
     total_timesteps,
     pi_lr,
     v_lr,
@@ -95,25 +110,32 @@ def A2C(
         ac_space=ac_space, ckpt_dir=ckpt_dir,
         **network_kwargs)
     
+    # only used to compute policy difference
+    oldpi = PolicyWithValue(ob_space=ob_space,
+        ac_space=ac_space, ckpt_dir=ckpt_dir,
+        **network_kwargs)
+    
     poptimizer = optim.Adam(pi.policy_net.parameters(),
         lr=pi_lr)
     voptimizer = optim.Adam(pi.value_net.parameters(),
         lr=v_lr)
 
     sampler = ParallelEnvTrajectorySampler(env, pi, nsteps, 
-        reward_transform=reward_transform) # hard-coded for pendulum
+        reward_transform=reward_transform, gamma=gamma) 
     
     # moving average of last 10 episode returns
-    rolling_buf_episode_rets = deque(maxlen=100) 
+    rolling_buf_episode_rets = deque(maxlen=10) 
     
     # moving average of last 10 episode length
-    rolling_buf_episode_lens = deque(maxlen=100)  
+    rolling_buf_episode_lens = deque(maxlen=10)  
     
     
     nframes = env.nenvs * nsteps # number of frames processed by update iter
     nupdates = total_timesteps // nframes
     
     for update in range(1, nupdates+1):
+        sync_policies(oldpi, pi)
+        
         tstart = time.perf_counter()
         
         trajectory = sampler(callback=estimate_Q)
@@ -122,6 +144,8 @@ def A2C(
         for k, v in trajectory.items():
             if isinstance(v, np.ndarray):
                 trajectory[k] = aggregate_experience(v)
+                
+        #trajectory = shuffle_experience(trajectory)
         
         adv = trajectory['Q'] - trajectory['vpreds']
         trajectory['adv'] = (adv - adv.mean())/adv.std()
@@ -148,10 +172,11 @@ def A2C(
         voptimizer.step()
         
         tnow = time.perf_counter()
-        fps = int(nframes / (tnow - tstart)) # frames per seconds
+     
         
         # logging
         if update % log_interval == 0 or update==1:
+            fps = int(nframes / (tnow - tstart)) # frames per seconds
             
             logger.record_tabular('iteration/nupdates', 
                                   f"{update}/{nupdates}")
@@ -168,7 +193,10 @@ def A2C(
 
             for ep_lens in trajectory['ep_lens']:
                 rolling_buf_episode_lens.extend(ep_lens)
-
+            
+            
+            step_size = policy_diff(oldpi, pi)
+            logger.record_tabular('step_size', step_size.numpy())
             
             # explained variance
             ev = explained_variance(trajectory['vpreds'], trajectory['Q'])
@@ -185,6 +213,8 @@ def A2C(
             logger.record_tabular('vqdiff', vqdiff)
             logger.record_tabular('Q', np.mean(trajectory['Q']))
             logger.record_tabular('vpreds', np.mean(trajectory['vpreds']))
+            
+            
             
             logger.record_tabular('FPS', fps)
             logger.record_tabular('ma_ep_ret', 
@@ -210,27 +240,35 @@ if __name__ == '__main__':
     from rlkits.env_batch import ParallelEnvBatch
     from rlkits.env_wrappers import AutoReset, StartWithRandomActions
     
+    
+    def stochastic_reward(rew):
+        eps = np.random.normal(loc=0.0, scale=0.1, size=rew.shape)
+        return rew + eps
+    
     def make_env():
         env = gym.make('CartPole-v0').unwrapped
         env = AutoReset(env)
         env = StartWithRandomActions(env, max_random_actions=5)
         return env
     
-    env=ParallelEnvBatch(make_env, nenvs=1)
+    nenvs = 16
+    env=ParallelEnvBatch(make_env, nenvs=nenvs)
+    
     
     A2C(
         env=env,
         nsteps=32,
-        total_timesteps=32*1*10000,
+        gamma=0.99,
+        total_timesteps=32*nenvs*10000,
         pi_lr=1e-4,
         v_lr=1e-4,
         ent_coef=1e-1,
         log_interval=10,
         max_grad_norm=0.1,
-        reward_transform=None,
-        log_dir='/home/ubuntu/tmp/logs/a2c/cartpole',
-        ckpt_dir='/home/ubuntu/tmp/logs/a2c/cartpole',
-        hidden_layers=[256, 512],
+        reward_transform=stochastic_reward,
+        log_dir= '/home/ubuntu/reinforcement-learning/experiments/A2C_2/log/16',
+        ckpt_dir='/home/ubuntu/reinforcement-learning/experiments/A2C_2/log/16',
+        hidden_layers=[32, 32, 32],
         activation=torch.nn.ReLU
     )
     

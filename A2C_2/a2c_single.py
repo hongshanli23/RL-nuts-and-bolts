@@ -212,7 +212,7 @@ def A2C(
                 
         
         adv = trajectory['Q'] - trajectory['vpreds']
-        trajectory['adv'] = adv
+        #trajectory['adv'] = adv
         trajectory['adv'] = (adv - adv.mean())/adv.std()
         
         
@@ -313,8 +313,8 @@ if __name__ == '__main__':
         log_interval=10,
         max_grad_norm=0.1,
         reward_transform=None,
-        log_dir='/home/ubuntu/tmp/log/debug/8',
-        ckpt_dir='/home/ubuntu/tmp/log/debug/8',
+        log_dir='/home/ubuntu/tmp/log/debug/9',
+        ckpt_dir='/home/ubuntu/tmp/log/debug/9',
         hidden_layers=[256, 512],
         activation=torch.nn.ReLU
     )
