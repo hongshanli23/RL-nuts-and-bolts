@@ -239,21 +239,35 @@ def safemean(l):
 if __name__ == '__main__':
     from rlkits.env_batch import ParallelEnvBatch
     from rlkits.env_wrappers import AutoReset, StartWithRandomActions
+    from rlkits.env_wrappers import TransformReward, Truncate
     
     
     def stochastic_reward(rew):
         eps = np.random.normal(loc=0.0, scale=0.1, size=rew.shape)
         return rew + eps
     
+    def normalize_pendulum(rew):
+        """Reward normalizer for Pendulum"""
+        return (rew + 8) 
+        
+        
     def make_env():
         env = gym.make('CartPole-v0').unwrapped
         env = AutoReset(env)
         env = StartWithRandomActions(env, max_random_actions=5)
         return env
+
+    def pendulum():
+        """Make env for pendulum"""
+        
+        env = gym.make('Pendulum-v0').unwrapped
+        #env = TransformReward(env, normalize_pendulum)
+        env = Truncate(env, lower_bound=-5)
+        env = AutoReset(env)
+        return env
     
     nenvs = 16
-    env=ParallelEnvBatch(make_env, nenvs=nenvs)
-    
+    env=ParallelEnvBatch(pendulum, nenvs=nenvs)
     
     A2C(
         env=env,
@@ -265,10 +279,10 @@ if __name__ == '__main__':
         ent_coef=1e-1,
         log_interval=10,
         max_grad_norm=0.1,
-        reward_transform=stochastic_reward,
-        log_dir= '/home/ubuntu/reinforcement-learning/experiments/A2C_2/log/16',
-        ckpt_dir='/home/ubuntu/reinforcement-learning/experiments/A2C_2/log/16',
-        hidden_layers=[32, 32, 32],
+        reward_transform=None,
+        log_dir= '/home/ubuntu/reinforcement-learning/experiments/A2C_2/log/18',
+        ckpt_dir='/home/ubuntu/reinforcement-learning/experiments/A2C_2/log/18',
+        hidden_layers=[32, 16],
         activation=torch.nn.ReLU
     )
     
