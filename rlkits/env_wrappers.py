@@ -14,6 +14,37 @@ class AutoReset(gym.Wrapper):
             obs = self.env.reset()
         return obs, rew, done, info
     
+    
+class TransformReward(gym.Wrapper):
+    """Apply transformation of rewards"""
+    def __init__(self, env, transform_fn):
+        super(TransformReward, self).__init__(env)
+        self.transform_fn = transform_fn
+    
+    def step(self, action):
+        obs, rew, done, info = self.env.step(action)
+        rew = self.transform_fn(rew)
+        return obs, rew, done, info
+    
+
+class Truncate(gym.Wrapper):
+    """Truncate an infinite episodic task by setting lower bound 
+    of negative reward
+    """
+    def __init__(self, env, lower_bound):
+        super(Truncate, self).__init__(env)
+        self.lower_bound = lower_bound
+        
+        self.total_rew = 0.0
+        
+    def step(self, action):
+        obs, rew, done, info = self.env.step(action)
+        self.total_rew += rew
+        if self.total_rew < self.lower_bound:
+            done = True
+            self.total_rew = 0.0
+        return obs, rew, done, info
+    
 class StartWithRandomActions(gym.Wrapper):
     """ Makes random number of random actions at the beginning of each
     episode. """

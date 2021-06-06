@@ -133,6 +133,8 @@ def A2C(
     nframes = env.nenvs * nsteps # number of frames processed by update iter
     nupdates = total_timesteps // nframes
     
+    start = time.perf_counter() 
+    best_ret = np.float('-inf')
     for update in range(1, nupdates+1):
         sync_policies(oldpi, pi)
         
@@ -217,18 +219,26 @@ def A2C(
             
             
             logger.record_tabular('FPS', fps)
-            logger.record_tabular('ma_ep_ret', 
-                                  safemean(rolling_buf_episode_rets))
-            logger.record_tabular('ma_ep_len',
+            
+            ret =  safemean(rolling_buf_episode_rets)
+            
+            logger.record_tabular("ma_ep_ret", ret)
+            logger.record_tabular('ma_ep_len', 
                                   safemean(rolling_buf_episode_lens))
-            logger.record_tabular('mean_step_rew', 
-                                  safemean(trajectory['rews']))
+            logger.record_tabular('mean_rew_step', 
+                                  np.mean(trajectory['rews']))
+            
+            
+            if ret != np.nan and ret > best_ret:
+                best_ret = ret
+                pi.save_ckpt('best')
+                
 
             logger.dump_tabular()
 
-            pi.save_ckpt()
-            torch.save(poptimizer, os.path.join(ckpt_dir, 'optim.pth'))
-            torch.save(voptimizer, os.path.join(ckpt_dir, 'optim.pth'))
+    pi.save_ckpt('last')
+    torch.save(poptimizer, os.path.join(ckpt_dir, 'optim.pth'))
+    torch.save(voptimizer, os.path.join(ckpt_dir, 'optim.pth'))
     return
 
 
@@ -246,43 +256,46 @@ if __name__ == '__main__':
         eps = np.random.normal(loc=0.0, scale=0.1, size=rew.shape)
         return rew + eps
     
-    def normalize_pendulum(rew):
-        """Reward normalizer for Pendulum"""
-        return (rew + 8) 
-        
-        
     def make_env():
         env = gym.make('CartPole-v0').unwrapped
         env = AutoReset(env)
         env = StartWithRandomActions(env, max_random_actions=5)
         return env
 
+    
+    def normalize_pendulum(rew):
+        """Reward normalizer for Pendulum"""
+        return (rew + 8)
+        
     def pendulum():
         """Make env for pendulum"""
         
-        env = gym.make('Pendulum-v0').unwrapped
+        env = gym.make('Pendulum-v0')
         #env = TransformReward(env, normalize_pendulum)
-        env = Truncate(env, lower_bound=-5)
+        #env = Truncate(env, lower_bound=-10)
         env = AutoReset(env)
         return env
     
-    nenvs = 16
+    nsteps=128
+    nenvs = 8
     env=ParallelEnvBatch(pendulum, nenvs=nenvs)
+    
+    
     
     A2C(
         env=env,
-        nsteps=32,
+        nsteps=nsteps,
         gamma=0.99,
-        total_timesteps=32*nenvs*10000,
+        total_timesteps=nsteps*nenvs*10000,
         pi_lr=1e-4,
         v_lr=1e-4,
-        ent_coef=1e-1,
+        ent_coef=0.0,
         log_interval=10,
         max_grad_norm=0.1,
         reward_transform=None,
-        log_dir= '/home/ubuntu/reinforcement-learning/experiments/A2C_2/log/18',
-        ckpt_dir='/home/ubuntu/reinforcement-learning/experiments/A2C_2/log/18',
-        hidden_layers=[32, 16],
+        log_dir= '/home/ubuntu/reinforcement-learning/experiments/A2C_2/log/pendulum/5',
+        ckpt_dir='/home/ubuntu/reinforcement-learning/experiments/A2C_2/log/pendulum/5',
+        hidden_layers=[256, 256, 64],
         activation=torch.nn.ReLU
     )
     

@@ -207,7 +207,6 @@ class PolicyWithValue:
         else:
             raise NotImplemented
 
-
         self.continuous = False  # continuous action space
         if self.ac_space.dtype == np.float32:
             self.continuous = True

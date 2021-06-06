@@ -72,6 +72,7 @@ def compute_losses(oldpi, pi, trajectory):
     res = {
         'surr_gain': surr_gain,
         'meankl': kl,
+        'entropy': pi_dist.entropy().mean()
         }
     return res
 
@@ -124,7 +125,8 @@ def TRPO(*,
         reward_transform,
         gamma=0.99,
         max_kl=1e-2,
-        cg_iters=10, 
+        cg_iters=10,
+        ent_coef=1e-2,
         cg_damping=1e-2, 
         backtrack_steps=10, 
         v_iters=3,
@@ -194,8 +196,10 @@ def TRPO(*,
         lossesbefore = compute_losses(oldpi, pi, trajectory)
         
         # estimate policy gradient of pi
-        g = torch.autograd.grad(lossesbefore['surr_gain'], 
-            pi.policy_net.parameters())
+        g = torch.autograd.grad(
+            lossesbefore['surr_gain'] + ent_coef*lossesbefore['entropy'], 
+            pi.policy_net.parameters()
+        )
         g = U.flatten(g)
         
         if torch.allclose(g, torch.zeros_like(g)):
@@ -205,7 +209,7 @@ def TRPO(*,
         with timed('conjugate gradient'):
             npg, cginfo = conjugate_gradient(
                 fisher_vector_product, g, 
-                cg_iters=cg_iters, verbose=True)
+                cg_iters=cg_iters, verbose=False)
         assert torch.isfinite(npg).all()
 
         # stepsize of the update
@@ -243,6 +247,7 @@ def TRPO(*,
         # update value net
         obs, Q = trajectory['obs'], trajectory['Q']
         obs, Q = torch.from_numpy(obs), torch.from_numpy(Q)
+        vlosses = []
         for _ in range(v_iters):
             for i in range(0, len(obs), batch_size):
                 x, y = obs[i:i+batch_size], Q[i:i+batch_size]
@@ -251,6 +256,7 @@ def TRPO(*,
                 voptimizer.zero_grad()
                 vloss.backward()
                 voptimizer.step()
+                vlosses.append(vloss.detach().numpy())
                 
         tnow = time.perf_counter()
         
@@ -262,10 +268,14 @@ def TRPO(*,
             # policy loss
             for k, v in lossesbefore.items():
                 logger.record_tabular(k, np.mean(v.detach().numpy()))
+                
+            # value loss
+            logger.record_tabular('value_loss', np.mean(vlosses))
             
             # conjugate gradient info
             for k, v in cginfo.items():
-                logger.record_tabular(k, v)
+                pass
+                #logger.record_tabular(k, v)
             
             # weights
             piw, vw = pi.average_weight()
@@ -318,7 +328,7 @@ def safemean(l):
 if __name__ == '__main__':
     from rlkits.env_batch import ParallelEnvBatch
     from rlkits.env_wrappers import AutoReset, StartWithRandomActions
-    
+    from rlkits.env_wrappers import TransformReward, Truncate
     
     def stochastic_reward(rew):
         eps = np.random.normal(loc=0.0, scale=0.1, size=rew.shape)
@@ -330,25 +340,41 @@ if __name__ == '__main__':
         env = StartWithRandomActions(env, max_random_actions=5)
         return env
     
-    nenvs = 16
-    env = ParallelEnvBatch(make_env, nenvs=nenvs)
+       
+    def normalize_pendulum(rew):
+        """Reward normalizer for Pendulum"""
+        return (rew + 8)
+        
+    def pendulum():
+        """Make env for pendulum"""
+        
+        env = gym.make('Pendulum-v0')
+        #env = TransformReward(env, normalize_pendulum)
+        #env = Truncate(env, lower_bound=-10)
+        env = AutoReset(env)
+        return env
+
+    nenvs = 8
+    nsteps = 1024
+    env = ParallelEnvBatch(pendulum, nenvs=nenvs)
     
     TRPO(
         env=env,
-        nsteps=32, 
-        total_timesteps=nenvs*32*10000,
+        nsteps=1024, 
+        total_timesteps=nenvs*nsteps*1000,
         gamma=0.99,
         log_interval=10,
         reward_transform=None,
-        log_dir='/home/ubuntu/reinforcement-learning/experiments/TRPO/8',
-        ckpt_dir='/home/ubuntu/reinforcement-learning/experiments/TRPO/8',
-        max_kl=1e-3,
-        cg_iters=20,
+        log_dir='/home/ubuntu/reinforcement-learning/experiments/TRPO/pendulum/4',
+        ckpt_dir='/home/ubuntu/reinforcement-learning/experiments/TRPO/pendulum/4',
+        max_kl=1e-2,
+        ent_coef=0.0,
+        cg_iters=10,
         cg_damping=1e-2,
         backtrack_steps=10,
         v_iters=1,
-        batch_size=nenvs*32,
+        batch_size=nenvs*nsteps // 4,
         v_lr=1e-4,
-        hidden_layers=[32, 32, 32],
-        activation=torch.nn.ReLU
+        hidden_layers=[256, 256, 64],
+        activation=torch.nn.Tanh
     )

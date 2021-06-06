@@ -1,0 +1,79 @@
+\documentclass{article}
+\usepackage{macro}
+\begin{document}
+
+Deep Deterministic Policy Gradient
+
+Suppose we have a perfect $Q$-value estimator $Q_{\theta}(s, a)$, then
+can we use it to learn a policy with off-policy alogorithm. This is 
+because for an optimal policy $\eta : S \rightarrow A$, we have 
+\[
+    Q(s, \eta(s)) \geq Q(s, a) \forall a \in A
+\]
+Hence, we can update the policy parameter by doing gradient ascend on
+\[
+    \E[Q(s, \eta(s))]
+\]
+through $a$ variable. 
+
+
+The idea of DDPG is to learn a $Q$-function via $Q$-learning styled 
+algorithm and learn a deterministic policy $\eta$ by maximizing 
+$Q(s, \eta(s))$. 
+
+Why $\eta$ needs to be a deterministic policy? 
+
+\begin{algorithm}[H]
+\caption{Deep Deterministic Policy Gradient}
+\label{alg}
+\end{algorithm}
+
+\begin{algorithmic}
+\STATE Input: initial policy parameter $\theta$, $Q$-function 
+parameters $\phi$, emtpy replay buffer $D$
+\STATE Set target parameters equal to main parameters 
+$\theta_{targ} \leftarrow \theta$, $\phi_{targ} \leftarrow \phi$
+
+\REPEAT
+\STATE Observe state $s$ and select an action (with Gaussian noise)
+$a = clip(\eta_{\theta}(s) + \epsilon, a_{low}, a_{high}), 
+\epsilon \sim N$
+\STATE Execute $a$ in the environment
+\STATE Observe next state $s^{\prime}$, reward $r$ and done signal 
+$d$ signal $d$ to indicate whether $s^{\prime}$ is terminal.
+\STATE Store $(s, a, r, s^{\prime}, d)$ in the replay buffer $D$
+\STATE If $s^{\prime}$ is terminal, reset environment state 
+\IF{it's time to update}
+\FOR{however many updates}
+\STATE Randomly sample a batch of transitions, 
+$B = \{(s, a, r, s^{\prime}, d)\}$ from $D$
+\STATE Compute targets
+\[
+    y(r, s^{\prime}, d) = r + \gamma(1-d)Q_{\phi_{targ}}(
+        s^{\prime}, \mu_{\phi_{targ}}(s^{\prime})
+        )
+\]
+
+\STATE Update policy by one sttep of gradient ascent using
+\[
+\nabla_{\phi}\frac{1}{|B|}\sum_{(s,a,r,s^{\prime},d)\in B}
+(Q_{\phi}(s, a) - y(r, s^{\prime}, d))^2
+\]
+\STATE Update policy by one step of gradient using
+\[
+    \nabla_{\theta} \frac{1}{|B|}\sum_{s\in B} 
+        Q_{\theta}(s, \mu_{\theta}(s))
+\]
+\STATE Update target network with 
+\begin{align}
+    \phi_{targ} \leftarrow \rho \phi_{targ} + (1-\rho)\phi \\
+    \theta_{targ} \leftarrow \rho \theta_{targ} + (1-\rho)\theta
+\end{align}
+\ENDFOR
+\ENDIF
+\UNTIL{convergence}
+
+\end{algorithmic}
+
+
+\end{document}
