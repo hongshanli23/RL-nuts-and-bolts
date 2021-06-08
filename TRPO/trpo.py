@@ -303,7 +303,7 @@ def TRPO(*,
             logger.record_tabular("ma_ep_ret", ret)
             logger.record_tabular('ma_ep_len', 
                                   safemean(rolling_buf_episode_lens))
-            logger.record_tabular('mean_rew_step', 
+            logger.record_tabular('mean_step_rew', 
                                   np.mean(trajectory['rews']))
             
             

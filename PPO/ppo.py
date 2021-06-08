@@ -1,7 +1,5 @@
 # PPO 
-
-from contextlib import contextmanager
-from collections import deque
+from collections import deque, defaultdict
 import numpy as np
 import time
 import os
@@ -11,40 +9,18 @@ import pickle
 import sys
 
 from rlkits.sampler import ParallelEnvTrajectorySampler
-from rlkits.sampler import estimate_Q
+from rlkits.sampler import estimate_Q, aggregate_experience
 from rlkits.policies import PolicyWithValue
 import rlkits.utils as U
-from rlkits.utils import colorize
 import rlkits.utils.logger as logger
-from rlkits.utils.math import explained_variance
+from rlkits.utils.math import explained_variance, KL
+from rlkits.utils.context import timed
+
 
 import torch 
 import torch.optim as optim
 import torch.nn.functional as F
 from torch.nn.utils import clip_grad_norm_
-
-
-@contextmanager
-def timed(msg):
-    print(colorize(msg, color='magenta'))
-    tstart = time.time()
-    yield
-    print(colorize("done in %.3f seconds"%(time.time() - tstart), color='magenta'))
-
-
-def sf01(arr):
-    """
-    aggregate experiences from all envs 
-    each expr from one env can be used for one update
-    I want to expr from the same env to stick together
-    This means I need to tranpose the array so that
-    (nenvs, nsteps, ...)
-    so that when I reshape (C style) the array to merge the first two axes
-    the exprs from the same env are contiguous     
-    swap and then flatten axes 0 and 1
-    """
-    s = arr.shape
-    return arr.swapaxes(0, 1).reshape(s[0] * s[1], *s[2:])
 
 
 def compute_loss(pi, trajectory, midx, eps, ent_coef, log_dir):
@@ -126,11 +102,87 @@ def compute_loss(pi, trajectory, midx, eps, ent_coef, log_dir):
     return pi_loss + v_loss.mean() - ent_coef * dist.entropy().mean()
 
 
-def PPO_clip(*,
+
+# TODO : merge with above loss fn
+def compute_loss_kl(oldpi, pi, trajectory, midx, eps, log_dir):
+    """compute loss for policy and value net"""
+    # policy loss
+    old_log_prob = trajectory['log_prob'][midx]
+    old_log_prob = torch.from_numpy(old_log_prob)
+    
+    adv = trajectory['adv'][midx]
+    #adv = (adv - adv.mean()) / adv.std()
+    adv = torch.from_numpy(adv)
+
+    obs = trajectory['obs'][midx]
+    obs = torch.from_numpy(obs)
+    
+    dist = pi.dist(pi.policy_net(obs))
+    if dist is None:
+        logger.log('Got NaN -- Bad')
+        pi.save_ckpt()
+        args = {
+            "trajectory": trajectory,
+            "midx": midx,
+            "eps": eps
+        }
+        with open(os.path.join(ckpt_dir, 'local.pkl'), 'wb') as f:
+            pickle.dump(args, f)
+        sys.exit()
+            
+    actions = torch.from_numpy(trajectory['actions'][midx])
+    log_prob = dist.log_prob(actions)
+    
+    # importance sampling ratio
+    ratio = torch.exp(log_prob - old_log_prob)
+    if len(ratio.shape) > 1:
+        ratio = ratio.squeeze(dim=1)
+    assert ratio.shape == adv.shape, f"ratio shape: {ratio.shape}, adv shape : {adv.shape}"
+    
+    # Compute KL
+    with torch.no_grad():
+        oldpi_dist = oldpi.dist(oldpi.policy_net(obs))
+    
+    kl = KL(oldpi_dist, dist).mean()
+    
+    # value loss
+    # want to make sure the difference between new value prediction
+    # and the new value prediction is clipped within [-\eps, eps]
+    vpreds = pi.value_net(obs)
+    mQ = trajectory['Q'][midx]
+    mQ = torch.from_numpy(mQ)
+    
+    if len(vpreds.shape) > 1:
+        vpreds = vpreds.squeeze(dim=1)
+    assert vpreds.shape == mQ.shape, f"vpreds shape: {vpreds.shape}, mQ shape : {mQ.shape}"
+
+    v_loss = F.mse_loss(vpreds, mQ)
+    
+    losses = {
+        "surr_gain": (ratio*adv).mean(),
+        "meankl": kl,
+        "entropy": dist.entropy().mean(),
+        "v_loss": v_loss   
+    }
+    return losses
+
+
+def sync_policies(oldpi, pi):
+    # oldpi <- pi
+    oldpi.policy_net.load_state_dict(pi.policy_net.state_dict())
+    oldpi.value_net.load_state_dict(pi.value_net.state_dict())
+    return
+
+
+
+def PPO(*,
     env,
     nsteps,
     total_timesteps,
+    max_kl,
+    beta,
     eps,            # epsilon
+    gamma,          # discount factor
     pi_lr,          # policy learning rate
     v_lr,           # value net learning rate
     ent_coef,
@@ -156,37 +208,40 @@ def PPO_clip(*,
     pi = PolicyWithValue(ob_space=ob_space,
         ac_space=ac_space, ckpt_dir=ckpt_dir,
         **network_kwargs)
+    
+    oldpi = PolicyWithValue(ob_space=ob_space,
+        ac_space=ac_space, ckpt_dir=ckpt_dir,
+        **network_kwargs)
+    
     poptimizer = optim.Adam(pi.policy_net.parameters(),
         lr=pi_lr)
     voptimizer = optim.Adam(pi.value_net.parameters(),
         lr=v_lr)
 
-    sampler = ParallelEnvTrajectorySampler(env, pi, nsteps, 
-        reward_transform=reward_transform) # hard-coded for pendulum
+    sampler = ParallelEnvTrajectorySampler(env, oldpi, nsteps, 
+        reward_transform=reward_transform, gamma=gamma) #
     
-    rolling_buf_episode_rets = deque(maxlen=100) # moving average of last 10 episode returns
-    rolling_buf_episode_lens = deque(maxlen=100)  # moving average of last 10 episode length
-    
-    
-    # clip range  should decay from \eps to \eps * 1/n linearly
-    # n is the total number of updates
-    # this means at the begining, we want the agent to explore
-    # more and we want the policy to converge at the end
+    rolling_buf_episode_rets = deque(maxlen=100) 
+    rolling_buf_episode_lens = deque(maxlen=100) 
     
     nframes = env.nenvs * nsteps # number of frames processed by update iter
     nupdates = total_timesteps // nframes
     
+    best_ret = np.float('-inf')
+    
     start = time.perf_counter()
     
     for update in range(1, nupdates+1):
-        tstart = time.perf_counter()
+        sync_policies(oldpi, pi)
         
+        tstart = time.perf_counter()
+
         trajectory = sampler(callback=estimate_Q)
         
         # aggregate exps from parallel envs
         for k, v in trajectory.items():
             if isinstance(v, np.ndarray):
-                trajectory[k] = sf01(v)
+                trajectory[k] = aggregate_experience(v)
         
         adv = trajectory['Q'] - trajectory['vpreds']
         trajectory['adv'] = (adv - adv.mean())/adv.std()
@@ -198,33 +253,46 @@ def PPO_clip(*,
 
         # update policy
         idx = np.arange(len(trajectory['obs']))
-        lossvals = []
+        lossvals = defaultdict(list)
         for _ in range(epochs):
-            #np.random.shuffle(idx) 
+            np.random.shuffle(idx) 
             for i in range(0, len(idx), batch_size):
                 midx = idx[i:i+batch_size] # indices of exps to train
                 
-                loss = compute_loss(pi=pi, 
-                                    trajectory=trajectory, 
-                                    midx=midx, 
-                                    eps=cliprange, 
-                                    ent_coef=ent_coef*frac,
-                                    log_dir=log_dir) 
-
+                losses = compute_loss_kl(
+                    oldpi=oldpi,
+                    pi=pi, 
+                    trajectory=trajectory, 
+                    midx=midx, 
+                    eps=cliprange, 
+                    log_dir=log_dir
+                ) 
+                
+                meankl = losses['meankl'].detach().item()
+                if meankl > 1.5 * max_kl:
+                    beta *= 2
+                elif meankl < max_kl / 1.5:
+                    beta /=2
+                
+                p_loss = -(losses['surr_gain'] - beta * losses['meankl'] + \
+                           frac*ent_coef*losses['entropy'])
                 poptimizer.zero_grad()
-                voptimizer.zero_grad()
-                loss.backward()
-
+                p_loss.backward()
                 clip_grad_norm_(
-                    pi.policy_net.parameters(),
-                    max_norm=max_grad_norm)
-                clip_grad_norm_(
-                    pi.value_net.parameters(),
-                    max_norm=max_grad_norm)
-
+                    pi.policy_net.parameters(), max_norm=max_grad_norm
+                )
                 poptimizer.step()
+                
+                v_loss = losses['v_loss']
+                voptimizer.zero_grad()
+                v_loss.backward()
+                clip_grad_norm_(
+                    pi.value_net.parameters(), max_norm=max_grad_norm
+                )
                 voptimizer.step()
-                lossvals.append(loss.detach().numpy())
+                
+                for k, v in losses.items():
+                    lossvals[k].append(v.detach().item())
         
         tnow = time.perf_counter()
         fps = int(nframes / (tnow - tstart)) # frames per seconds
@@ -248,11 +316,13 @@ def PPO_clip(*,
 
 
             piw, vw = pi.average_weight()
-            logger.record_tabular('policy_net_average_param', piw.numpy())
-            logger.record_tabular('value_net_average_param', vw.numpy())
+            logger.record_tabular('policy_net_weight', piw.numpy())
+            logger.record_tabular('value_net_weight', vw.numpy())
 
-            logger.record_tabular('loss', np.mean(lossvals))
-
+            # losses 
+            for k, v in lossvals.items():
+                logger.record_tabular(k, np.mean(v))
+            
             vqdiff = np.mean((trajectory['Q'] - trajectory['vpreds'])**2)
             
             logger.record_tabular('VQDiff', vqdiff)
@@ -261,20 +331,25 @@ def PPO_clip(*,
             
             logger.record_tabular('FPS', fps)
             
-            
-            logger.record_tabular("ma_ep_ret", safemean(rolling_buf_episode_rets))
+            ret = safemean(rolling_buf_episode_rets)
+            logger.record_tabular("ma_ep_ret", ret)
             logger.record_tabular('ma_ep_len', safemean(rolling_buf_episode_lens))
             logger.record_tabular('mean_step_rew', safemean(trajectory['rews']))
 
             logger.dump_tabular()
 
-            pi.save_ckpt()
-            torch.save(poptimizer, os.path.join(ckpt_dir, 'optim.pth'))
-            torch.save(voptimizer, os.path.join(ckpt_dir, 'optim.pth'))
+            if ret !=np.nan and ret > best_ret:
+                best_ret = ret
+                pi.save_ckpt('best')
+                torch.save(poptimizer, os.path.join(ckpt_dir, 'poptim-best.pth'))
+                torch.save(voptimizer, os.path.join(ckpt_dir, 'voptim-best.pth'))
     
     end = time.perf_counter()
-    
     logger.log(f'Total training time: {end - start}')
+    
+    pi.save_ckpt('final')
+    torch.save(poptimizer, os.path.join(ckpt_dir, 'poptim-final.pth'))
+    torch.save(voptimizer, os.path.join(ckpt_dir, 'voptim-final.pth'))
     return
 
 def safemean(l):
@@ -291,25 +366,30 @@ if __name__ == '__main__':
         return env
     
     nenvs = 16
+    nsteps = 128
     
     env=ParallelEnvBatch(make_env, nenvs=nenvs)
     
-    PPO_clip(
+    
+    PPO(
         env=env,
-        nsteps=32,
-        total_timesteps=nenvs*32*10000, 
+        nsteps=nsteps,
+        total_timesteps=nenvs*nsteps*10000, 
+        max_kl=1e-2,
+        beta=0.5,
         eps = 0.2,
+        gamma=0.99,
         pi_lr=1e-4,
         v_lr = 1e-4,
         ent_coef=0.1,
-        epochs=1,
-        batch_size=nenvs*8, 
+        epochs=3,
+        batch_size=nenvs*nsteps, 
         log_interval=10,
         max_grad_norm=0.1,
         reward_transform=None,
-        log_dir='/home/ubuntu/reinforcement-learning/experiments/ppo/0',
-        ckpt_dir='/home/ubuntu/reinforcement-learning/experiments/ppo/0',
-        hidden_layers=[256, 512],
+        log_dir='/home/ubuntu/reinforcement-learning/experiments/ppo/cartpole/6',
+        ckpt_dir='/home/ubuntu/reinforcement-learning/experiments/ppo/cartpole/6',
+        hidden_layers=[256, 256, 64],
         activation=torch.nn.ReLU, 
         )
     
