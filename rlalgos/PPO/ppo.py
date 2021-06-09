@@ -365,12 +365,15 @@ if __name__ == '__main__':
         env = StartWithRandomActions(env, max_random_actions=5)
         return env
     
+    def pendulum():
+        env = gym.make('Pendulum-v0')
+        env = AutoReset(env)
+        env = StartWithRandomActions(env, max_random_actions=5)
+        return env
+    
     nenvs = 16
     nsteps = 128
-    
     env=ParallelEnvBatch(make_env, nenvs=nenvs)
-    
-    
     PPO(
         env=env,
         nsteps=nsteps,
@@ -381,14 +384,14 @@ if __name__ == '__main__':
         gamma=0.99,
         pi_lr=1e-4,
         v_lr = 1e-4,
-        ent_coef=0.1,
+        ent_coef=0.0,
         epochs=3,
         batch_size=nenvs*nsteps, 
         log_interval=10,
         max_grad_norm=0.1,
         reward_transform=None,
-        log_dir='/home/ubuntu/reinforcement-learning/experiments/ppo/cartpole/6',
-        ckpt_dir='/home/ubuntu/reinforcement-learning/experiments/ppo/cartpole/6',
+        log_dir='/home/ubuntu/reinforcement-learning/experiments/ppo/pendulum/0',
+        ckpt_dir='/home/ubuntu/reinforcement-learning/experiments/ppo/pendulum/0',
         hidden_layers=[256, 256, 64],
         activation=torch.nn.ReLU, 
         )

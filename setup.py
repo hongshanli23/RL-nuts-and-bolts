@@ -21,14 +21,10 @@ for group_name in extras:
 
 extras['all'] = all_deps
 
-setup(name='rlkits',
+setup(name='RL Nuts and Bolts',
       packages=[
           'rlkits',
-          'A2C',
-          'A2C_2',
-          'TRPO',
-          'PPO'
-          
+          'rlalgos' 
           #package for package in find_packages()
           #      if package.startswith('')
       ],
