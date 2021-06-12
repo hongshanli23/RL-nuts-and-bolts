@@ -288,13 +288,24 @@ class PolicyWithValue:
         if self.continuous:
             assert params.shape[-1] == 2  # mean and log of std
             mean, logstd = torch.split(params, [1, 1], dim=1)
-            if not all(torch.isfinite(mean)) or not all(torch.isfinite(logstd)):
-                return None
-            return Normal(mean, torch.exp(logstd))
+            try: 
+                m = Normal(mean, torch.exp(logstd))
+                return m
+            except Exception as e:
+                print(e)
+                self.save_ckpt('dead')
+                sys.exit()
         else:
-            # apply softmax to the output
-            prob = torch.softmax(params, dim=-1)
-            return Categorical(prob)
+            try:
+                # apply softmax to the output
+                prob = torch.softmax(params, dim=-1)
+                m = Categorical(prob)
+                return m
+            except Exception as e:
+                print(e)
+                self.save_ckpt('dead')
+                sys.exit()
+                
 
     def save_ckpt(self, postfix=''):
         if not os.path.exists(self.ckpt_dir):

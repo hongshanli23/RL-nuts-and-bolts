@@ -45,7 +45,7 @@ args = parser.parse_args()
 
 
 def make_env():
-    env = gym.make('CartPole-v0').unwrapped
+    env = gym.make('Pendulum-v0')
     env = AutoReset(env)
     env = StartWithRandomActions(env, max_random_actions=5)
     return env
