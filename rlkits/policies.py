@@ -34,7 +34,110 @@ class RandomPolicyWithValue:
         return np.random.rand()
 
 
+class DeterministicPolicy:
+    """Deterministic policy for continuous action space"""
+    def __init__(self, ob_space, ac_space, ckpt_dir, **network_kwargs):
+        self.ob_space = ob_space
+        self.ac_space = ac_space
+        self.ac_space_dim = np.prod(ac_shape.shape).item()
+        self.ckpt_dir = ckpt_dir        
+        
+        self.input_dim = np.prod(self.ob_space.shape).item()
+        self.model = MLP(
+            input_shape=self.input_dim, output_shape=self.action_space_dim,
+            **network_kwargs
+        )
+        
+    def __call__(self, obs):
+        obs = self.transform_input(obs)
+        return self.model(obs)
+        
+    def parameters():
+        return self.model.parameters()
+    
+    def average_weight(self):
+        pi = 0.0 
+        cnt = 0
+        for p in self.parameters():
+            pi+= torch.mean(p.data)
+            cnt+=1
+        pi /= cnt
+        return pi
+    
+    def transform_input(self, x):   
+        if len(x.shape) == 1:
+            x = np.expand_dims(x, axis=0)
+        x = torch.from_numpy(x).float()
+        return x
+    
+    def step(self, x):
+        """Take action at the current state of the env"""
+        x = self.transform_input(x)
+        with torch.no_grad():
+            y = self.model(x)
+        return y
 
+    def save_ckpt(self, postfix=''):
+        if not os.path.exists(self.ckpt_dir):
+            os.makedirs(self.ckpt_dir)
+
+        ckpt = {
+            "model": self.model.state_dict()
+        }
+        torch.save(ckpt, os.path.join(self.ckpt_dir, f"ckpt-{postfix}.pth"))
+        return
+
+    def load_ckpt(self, ckptfile):
+        ckpt = torch.load(ckptfile)
+        self.model.load_state_dict(ckpt["model"])
+        return
+
+
+class QNetForContinuousAction:
+    """Function approximator for state action value Q(s, a) with a
+    being continuous
+    """
+    def __init__(self, ob_space, ac_space, ckpt_dir, **network_kwargs):
+        self.ob_space = ob_space
+        self.ac_space = ac_space
+        self.ac_space_dim = np.prod(ac_shape.shape).item()
+        self.ckpt_dir = ckpt_dir        
+        
+        self.input_dim = np.prod(self.ob_space.shape).item() + \
+            np.prod(self.ac_space.shape).item()
+
+        self.model = MLP(
+            input_shape=self.input_dim, output_shape=1,
+            **network_kwargs
+        )
+    def parameters(self):
+        return self.model.parameters()
+    
+    def __call__(self, obs, acs):
+        obs, acs = self.transform_input(obs, acs)
+        assert obs.shape[0] == acs.shape[0]
+        x = torch.cat([obs, acs], dim=1)
+        return self.model(x)
+        
+    def average_weight(self):
+        pi = 0.0 
+        cnt = 0
+        for p in self.parameters():
+            pi+= torch.mean(p.data)
+            cnt+=1
+        pi /= cnt
+        return pi
+    
+            
+    def transform_input(self, *args): 
+        for i, x in enumerate(args):
+            if len(x.shape) == 1:
+                x = np.expand_dims(x, axis=0)
+            x = torch.from_numpy(x).float()
+            args[i] = x
+        return args
+    
+    
 class PolicyWithValue:
     def __init__(self, ob_space, ac_space, ckpt_dir, **network_kwargs):
         """

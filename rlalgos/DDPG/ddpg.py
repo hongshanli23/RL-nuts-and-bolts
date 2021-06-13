@@ -4,6 +4,8 @@
 from collections import deque
 import time
 
+from 
+
 
 def DDPG(*,
     env_name,
@@ -12,6 +14,7 @@ def DDPG(*,
     gamma,
     pi_lr,
     v_lr,
+    ployak,
     batch_size,
     log_interval,
     max_grad_norm,
@@ -20,19 +23,41 @@ def DDPG(*,
     **network_kwargs,
 ):
     
+    if not os.path.exists(log_dir):
+        os.makedirs(log_dir)
+    if not os.path.exists(ckpt_dir):
+        os.makedirs(ckpt_dir)
+    logger.configure(dir=log_dir) 
+    
     env = gym.make(env_name)
+    ob_space = env.observation_space
+    ac_space = env.action_space
+    
+    policy = DeterministicPolicy(
+        ob_space=ob_space, ac_space=ac_space, ckpt_dir=ckpt_dir,
+        **network_kwargs
+    )
+    target_policy = DeterministicPolicy(
+        ob_space=ob_space, ac_space=ac_space, ckpt_dir=ckpt_dir,
+        **network_kwargs
+    )
 
-    policy = DeterministicPolicy()
-    target_policy = DeterministicPolicy()
-
-    value_net = QNetForContinuousAction()
-    target_value_net = QNetForContinuousAction()
+    value_net = QNetForContinuousAction(
+        ob_space=ob_space, ac_space=ac_space, ckpt_dir=ckpt_dir,
+        **network_kwargs
+    )
+    
+    target_value_net = QNetForContinuousAction(
+        ob_space=ob_space, ac_space=ac_space, ckpt_dir=ckpt_dir,
+        **network_kwargs
+    )
 
     replay_buffer = ReplayBuffer(
         size=buf_size,
         batch_size=batch_size
-        )
+    )
     
+    rolling_buf_episode_rets = deque(maxlen=100) 
     curr_state = env.reset()
     for i in range(1 + niters):
         # sample nsteps experiences and save to replay buffer
@@ -59,16 +84,13 @@ def DDPG(*,
             
             # Q(s, a)
             q_pred = value_net(obs, acs)
-            
             q_loss = F.mse(q_pred, q_targ)
-            
             voptimizer.zero_grad()
             q_loss.backward()
             voptimizer.step()
 
             # update policy through value
             policy_loss = -value_net(obs, policy(acs))
-            
             poptimizer.zero_grad()
             policy_loss.backward()
             poptimizer.step()
