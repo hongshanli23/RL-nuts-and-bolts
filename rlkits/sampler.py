@@ -3,8 +3,6 @@ from rlkits.env_batch import EnvBatch
 from rlkits.env_batch import SingleEnvBatch, ParallelEnvBatch
 
 
-
-
 class ParallelEnvTrajectorySampler:
     """Sample a trajectory"""
     def __init__(self, env, policy, nsteps, reward_transform=None, gamma=0.99):

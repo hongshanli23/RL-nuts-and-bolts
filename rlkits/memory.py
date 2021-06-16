@@ -30,7 +30,16 @@ class RingBuffer(object):
             # This should never happen.
             raise RuntimeError()
         self.data[(self.start + self.length - 1) % self.maxlen] = v
-
+        return 
+    
+    def batch_append(self, v):
+        """Append a batch of experiences
+        v: numpy array such that axis 0 is the batch dimension
+        """
+        for _v in v:
+            self.append(_v)
+        return 
+        
 
 def array_min2d(x):
     x = np.array(x)
@@ -68,15 +77,24 @@ class Memory(object):
         }
         return result
 
-    def append(self, obs0, action, reward, obs1, terminal1, training=True):
+    def append(self, obs0, action, reward, obs1, terminal1, 
+               parallel_env=True, training=True):
         if not training:
             return
-
-        self.observations0.append(obs0)
-        self.actions.append(action)
-        self.rewards.append(reward)
-        self.observations1.append(obs1)
-        self.terminals1.append(terminal1)
+        
+        if parallel_env:
+            # each input has a batch dimension
+            self.observations0.batch_append(obs0)
+            self.actions.batch_append(action)
+            self.rewards.batch_append(reward)
+            self.observations1.batch_append(obs1)
+            self.terminals1.batch_append(terminal1)
+        else:
+            self.observations0.append(obs0)
+            self.actions.append(action)
+            self.rewards.append(reward)
+            self.observations1.append(obs1)
+            self.terminals1.append(terminal1)
 
     @property
     def nb_entries(self):

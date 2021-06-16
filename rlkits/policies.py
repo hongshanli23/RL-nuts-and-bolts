@@ -39,12 +39,12 @@ class DeterministicPolicy:
     def __init__(self, ob_space, ac_space, ckpt_dir, **network_kwargs):
         self.ob_space = ob_space
         self.ac_space = ac_space
-        self.ac_space_dim = np.prod(ac_shape.shape).item()
+        self.ac_space_dim = np.prod(ac_space.shape).item()
         self.ckpt_dir = ckpt_dir        
         
         self.input_dim = np.prod(self.ob_space.shape).item()
         self.model = MLP(
-            input_shape=self.input_dim, output_shape=self.action_space_dim,
+            input_shape=self.input_dim, output_shape=self.ac_space_dim,
             **network_kwargs
         )
         
@@ -52,7 +52,7 @@ class DeterministicPolicy:
         obs = self.transform_input(obs)
         return self.model(obs)
         
-    def parameters():
+    def parameters(self):
         return self.model.parameters()
     
     def average_weight(self):
@@ -62,12 +62,11 @@ class DeterministicPolicy:
             pi+= torch.mean(p.data)
             cnt+=1
         pi /= cnt
-        return pi
+        return pi.numpy()
     
     def transform_input(self, x):   
         if len(x.shape) == 1:
-            x = np.expand_dims(x, axis=0)
-        x = torch.from_numpy(x).float()
+            x = torch.unsqueeze(x, dim=0)
         return x
     
     def step(self, x):
@@ -75,7 +74,7 @@ class DeterministicPolicy:
         x = self.transform_input(x)
         with torch.no_grad():
             y = self.model(x)
-        return y
+        return y.numpy()
 
     def save_ckpt(self, postfix=''):
         if not os.path.exists(self.ckpt_dir):
@@ -100,7 +99,7 @@ class QNetForContinuousAction:
     def __init__(self, ob_space, ac_space, ckpt_dir, **network_kwargs):
         self.ob_space = ob_space
         self.ac_space = ac_space
-        self.ac_space_dim = np.prod(ac_shape.shape).item()
+        self.ac_space_dim = np.prod(ac_space.shape).item()
         self.ckpt_dir = ckpt_dir        
         
         self.input_dim = np.prod(self.ob_space.shape).item() + \
@@ -126,16 +125,27 @@ class QNetForContinuousAction:
             pi+= torch.mean(p.data)
             cnt+=1
         pi /= cnt
-        return pi
+        return pi.numpy()
+    
+    def save_ckpt(self, postfix=''):
+        if not os.path.exists(self.ckpt_dir):
+            os.makedirs(self.ckpt_dir)
+
+        ckpt = {
+            "model": self.model.state_dict()
+        }
+        torch.save(ckpt, 
+                   os.path.join(self.ckpt_dir, f"ckpt-{postfix}.pth"))
+        return
     
             
-    def transform_input(self, *args): 
+    def transform_input(self, *args):
+        new_args = []
         for i, x in enumerate(args):
             if len(x.shape) == 1:
-                x = np.expand_dims(x, axis=0)
-            x = torch.from_numpy(x).float()
-            args[i] = x
-        return args
+                x = torch.unsqueeze(x, dim=0)
+            new_args.append(x)
+        return new_args
     
     
 class PolicyWithValue:
