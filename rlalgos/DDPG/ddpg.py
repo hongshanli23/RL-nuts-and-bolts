@@ -4,17 +4,23 @@
 from collections import deque
 import time
 
-from 
+from rlkits.policies import DeterministicPolicy
+from rlkits.policies import QNetForContinuousAction
+from rlkits.memory import Memory
+
+from rlkits.env_batch import ParallelEnvBatch
+from rlkits.env_wrappers import AutoReset, StartWithRandomActions
 
 
 def DDPG(*,
-    env_name,
+    env,
     nsteps,
     niters,
+    nupdates,
     gamma,
     pi_lr,
     v_lr,
-    ployak,
+    polyak,
     batch_size,
     log_interval,
     max_grad_norm,
@@ -22,14 +28,38 @@ def DDPG(*,
     ckpt_dir,
     **network_kwargs,
 ):
+    """
+    env: gym env (parallel)
+    nsteps: number of steps to sample from the parallel env
+        nstep * env.nenvs frames will be sampled
+    
+    niters: total number of iteration
+        one iteration consists of 
+        1. sample `nsteps * env.nenvs` number of frames and cache to 
+            memory buffer
+        2. train the agent for `nupdates` number of times. Each time
+            using `batch_size` number of frames
+            
+    ployak (float): linear interpolation coefficient for updating 
+        the target policy and value net from the current ones
+    """
+    # env 
+    def make_env():
+        env = gym.make(env_name)
+        env = AutoReset(env)
+        env = StartWithRandomActions(env, max_random_actions=5)
+        return env
+    
+    nenvs=8
+    env = ParallelEnvBatch(make_env, nenvs=nenvs)
+    
     
     if not os.path.exists(log_dir):
         os.makedirs(log_dir)
     if not os.path.exists(ckpt_dir):
         os.makedirs(ckpt_dir)
     logger.configure(dir=log_dir) 
-    
-    env = gym.make(env_name)
+        
     ob_space = env.observation_space
     ac_space = env.action_space
     
@@ -52,9 +82,10 @@ def DDPG(*,
         **network_kwargs
     )
 
-    replay_buffer = ReplayBuffer(
-        size=buf_size,
-        batch_size=batch_size
+    replay_buffer = Memory(
+        limit=buf_size,
+        action_shape=ac_space.shape,
+        observation_shape=ob_space.shape
     )
     
     rolling_buf_episode_rets = deque(maxlen=100) 
@@ -119,7 +150,7 @@ def DDPG(*,
             ret = np.mean(rolling_buf_episode_rets)
             logger.record_tabular("ma_ep_ret", ret)
             logger.record_tabular("mean_step_rew", np.mean(
-                trajectory["rews"])
+                trajectory["rews"]))
 
             pw, tpw = policy.weight(), target_policy.weight()
             vw, tvw = value_net.weight(), target_value_net.weight()
@@ -131,8 +162,10 @@ def DDPG(*,
             if ret > best_ret:
                 best_ret = ret
                 policy.save_ckpt('best')
-                torch.save(poptimizer, os.path.join(ckpt_dir, 'poptim-best.pth'))
-                torch.save(voptimizer, os.path.join(ckpt_dir, 'voptim-best.pth'))
+                torch.save(poptimizer, os.path.join(ckpt_dir, 
+                                                    'poptim-best.pth'))
+                torch.save(voptimizer, os.path.join(ckpt_dir, 
+                                                    'voptim-best.pth'))
     
     pi.save_ckpt('final')
     torch.save(poptimizer, os.path.join(ckpt_dir, 'poptim-final.pth'))
@@ -140,5 +173,33 @@ def DDPG(*,
     return 
 
 
-
-
+if __name__=='__main__':
+    from rlkits.env_batch import ParallelEnvBatch
+    from rlkits.env_wrappers import AutoReset, StartWithRandomActions
+    
+    def make_env():
+        env = gym.make('Pendulum-v0')
+        env = AutoReset(env)
+        env = StartWithRandomActions(env, max_random_actions=5)
+        return env
+    
+    nenvs=8
+    env = ParallelEnvBatch(make_env, nenvs=nenvs)
+    DDPG(
+        env,
+        nsteps,
+        niters,
+        nupdates,
+        gamma,
+        pi_lr,
+        v_lr,
+        polyak,
+        batch_size,
+        log_interval,
+        max_grad_norm,
+        log_dir,
+        ckpt_dir,
+        **network_kwargs,
+    )
+    
+    
