@@ -18,7 +18,7 @@ pip install -e .
 * [A2C](rlalgos/A2C/a2c.py)
 * [TRPO](rlalgos/TRPO/trpo.py)
 * [PPO](rlalgos/PPO/ppo.py)
-
+* [DDPG](rlalgos/DDPG/ddpg.py)
 
 ## Reference
 * [andri27-ts/Reinforcement-Learning](https://github.com/andri27-ts/Reinforcement-Learning)
