@@ -34,6 +34,7 @@ def to_tensor(*args):
 
 def DDPG(*,
     env_name,
+    nenvs,
     nsteps,
     niters,
     nupdates,
@@ -55,6 +56,8 @@ def DDPG(*,
     nsteps: number of steps to sample from the parallel env
         nstep * env.nenvs frames will be sampled
     
+    nenvs: number of parallel envs
+    
     niters: total number of iteration
         one iteration consists of 
         1. sample `nsteps * env.nenvs` number of frames and cache to 
@@ -74,7 +77,6 @@ def DDPG(*,
         env = StartWithRandomActions(env, max_random_actions=5)
         return env
     
-    nenvs=8
     env = ParallelEnvBatch(make_env, nenvs=nenvs)
     
     
@@ -141,8 +143,9 @@ def DDPG(*,
             
             # target for qnet
             with torch.no_grad():
+                acs = target_policy(nxs)
                 nx_state_vals = target_value_net(
-                    nxs, target_policy(nxs)
+                    nxs, acs
                 )
             # Q_targ(s', \mu_targ(s'))
             q_targ = rews + gamma * (1 - dones) * nx_state_vals
@@ -224,12 +227,11 @@ if __name__=='__main__':
         env = AutoReset(env)
         env = StartWithRandomActions(env, max_random_actions=5)
         return env
-    
-    nenvs=8
-    env = ParallelEnvBatch(make_env, nenvs=nenvs)
+
     DDPG(
         env_name='Pendulum-v0',
-        nsteps=32, 
+        nsteps=32,
+        nenvs=8,
         niters=10000,
         nupdates=20,
         buf_size=10000, 
