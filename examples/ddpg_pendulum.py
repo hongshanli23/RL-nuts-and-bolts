@@ -33,17 +33,17 @@ parser.add_argument('--max-grad-norm', type=float, default=0.1,
                    help='maximum norm of gradients in each nn layer')
 parser.add_argument('--batch-size', type=int, default=128,
                    help='batch size of each policy update')
-parser.add_argument('--log-interval', type=int, default=10,
+parser.add_argument('--log-interval', type=int, default=1,
                    help='logging frequency')
 parser.add_argument('--log-dir', type=str, default="/tmp/ddpg",
                    help='directory to write logs')
 parser.add_argument('--ckpt-dir', type=str, default='/tmp/ddpg',
                    help='directory to write checkpoint')
+parser.add_argument('--hidden-layers', nargs="+", type=int, 
+                    default=[256, 256, 64],
+                   help='hidden layers')
 
-parser.add_argument('--hidden-layers', nargs="+", type=int, default=[256, 256, 64],
-               help='hidden layers')
 args = parser.parse_args()
-
 
 DDPG(
     env_name='Pendulum-v0',

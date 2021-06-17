@@ -120,7 +120,7 @@ def DDPG(*,
     best_ret = np.float('-inf')
     rolling_buf_episode_rets = deque(maxlen=10) 
     curr_state = env.reset()
-    for i in range(1 + niters):
+    for i in range(1, 1 + niters):
         # sample nsteps experiences and save to replay buffer
         for _ in range(nsteps):
             ac = policy.step(*to_tensor(curr_state))
@@ -132,7 +132,7 @@ def DDPG(*,
                 
         # train the policy and value
         lossvals = defaultdict(list)
-        for _ in range(nupdates):
+        for j in range(nupdates):
             res = replay_buffer.sample(batch_size)
             
             obs, acs, rews, nxs, dones = res['obs0'], res['actions'], res['rewards'], res['obs1'], res['terminals1']
@@ -167,17 +167,17 @@ def DDPG(*,
             lossvals['policy_loss'].append(policy_loss.detach().numpy())
             lossvals['value_loss'].append(q_loss.detach().numpy())
         
-        if i % model_update_frequency:
-            # update target value net and policy
-            # through linear interpolation
-            for p, p_targ in zip(policy.parameters(), 
-                target_policy.parameters()):
-                p_targ.data.copy_(polyak*p_targ.data + (1-polyak)*p.data)
+            if i % model_update_frequency:
+                # update target value net and policy
+                # through linear interpolation
+                for p, p_targ in zip(policy.parameters(), 
+                    target_policy.parameters()):
+                    p_targ.data.copy_(polyak*p_targ.data + (1-polyak)*p.data)
 
-            for p, p_targ in zip(value_net.parameters(),
-                target_value_net.parameters()):
-                p_targ.data.copy_(polyak*p_targ.data + (1-polyak)*p.data)
-        
+                for p, p_targ in zip(value_net.parameters(),
+                    target_value_net.parameters()):
+                    p_targ.data.copy_(polyak*p_targ.data + (1-polyak)*p.data)
+
         if i % log_interval == 0 or i == 1:
             # loss from policy and value 
             for k, v in lossvals.items():
