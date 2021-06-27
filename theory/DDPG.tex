@@ -4,6 +4,54 @@
 
 Deep Deterministic Policy Gradient
 
+Limitation of discretize action space for high dimentional control tasks:
+
+1. Curse of dimensionality: with $n$ degree of freedom, if we discretize
+each action space into $m$ discrete buckets, then the total number of 
+buckets would be $m^n$.
+
+2. Insufficient exploration. By limiting the number of discrete actions
+we will underexplore the action space. 
+
+
+Key ideas:
+1. Stability tricks from DQN
+
+2. Batch norm to normalize feature units (speed, angle have different 
+units)
+In supervised learning, BN is used to minimize covariance shift during 
+training, by ensuring each layer receives whitend input. 
+In DDPG, normalization is used on state input and all layers of the 
+$\mu$ network (policy) and all layers of the $Q$ network prioir to 
+the action input. 
+
+Architecture of the $Q$ network:
+Action can be concatenated in the middle. 
+
+Exploration:
+
+One advantage of off-policies algorithms such as DDPG is that we can treat 
+the problem of exploration independently from learning problem. (what does 
+it mean? )
+We can construct an exploration policy $\mu^{\prime}$ 
+\[
+    \mu^{\prime}(s_t) = \mu(s_t | \theta^{\mu}_t) + \mathsrc{N}
+\]
+
+
+Implementation details:
+1. Rescale action into [-1, 1], 
+2. Normalize return (can be false)
+3. Normalize observation. Get the observation to [0, 1].
+4. Rescale the reward. It is similar to my `reward_transform` function
+5. L2 regularization of policy and value nets
+6. Clip gradient
+7. Noise is added when actor takes an action
+8. Action is also clipped
+9. Keep moving average of return, observation
+10. Don't forget to scale the action back when use it for env
+11. target network is updated in each 
+
 Suppose we have a perfect $Q$-value estimator $Q_{\theta}(s, a)$, then
 can we use it to learn a policy with off-policy alogorithm. This is 
 because for an optimal policy $\eta : S \rightarrow A$, we have 

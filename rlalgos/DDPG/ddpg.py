@@ -12,6 +12,7 @@ import os
 import torch
 import torch.optim as optim
 import torch.nn.functional as F
+from torch.nn.utils import clip_grad_norm_
 
 import rlkits.utils.logger as logger
 from rlkits.policies import DeterministicPolicy
@@ -42,7 +43,6 @@ def DDPG(*,
     gamma,
     pi_lr,
     v_lr,
-    model_update_frequency,
     polyak,
     batch_size,
     log_interval,
@@ -66,7 +66,8 @@ def DDPG(*,
             using `batch_size` number of frames
             
     ployak (float): linear interpolation coefficient for updating 
-        the target policy and value net from the current ones
+        the target policy and value net from the current ones; 
+        Interpret it as the weight of the current target network
     
     buf_size: size of the replay buffer
     """
@@ -134,12 +135,11 @@ def DDPG(*,
         lossvals = defaultdict(list)
         for j in range(nupdates):
             res = replay_buffer.sample(batch_size)
-            
             obs, acs, rews, nxs, dones = res['obs0'], res['actions'], res['rewards'], res['obs1'], res['terminals1']
-            
             obs, acs, rews, nxs, dones = to_tensor(
                 obs, acs, rews, nxs, dones
             )
+            
             
             # target for qnet
             with torch.no_grad():
@@ -151,37 +151,42 @@ def DDPG(*,
             q_targ = rews + gamma * (1 - dones) * nx_state_vals
             
             # Q(s, a)
-   
             q_pred = value_net(obs, acs)
             q_loss = F.mse_loss(q_pred, q_targ)
             voptimizer.zero_grad()
             q_loss.backward()
+            clip_grad_norm_(value_net.parameters(), max_norm=max_grad_norm)
             voptimizer.step()
 
             # update policy through value
-            policy_loss = -value_net(obs, policy(obs)).mean()
+            action = policy(obs)
+            policy_loss = -value_net(obs, action).mean()
+            voptimizer.zero_grad()
             poptimizer.zero_grad()
             policy_loss.backward()
+            clip_grad_norm_(policy.parameters(), max_norm=max_grad_norm)
             poptimizer.step()
             
             lossvals['policy_loss'].append(policy_loss.detach().numpy())
             lossvals['value_loss'].append(q_loss.detach().numpy())
+            lossvals['target_value'].append(q_targ.detach().numpy())
+            lossvals['predicted_q_value'].append(q_pred.detach().numpy())
         
-            if i % model_update_frequency:
-                # update target value net and policy
-                # through linear interpolation
-                for p, p_targ in zip(policy.parameters(), 
-                    target_policy.parameters()):
-                    p_targ.data.copy_(polyak*p_targ.data + (1-polyak)*p.data)
+            # update target value net and policy
+            # through linear interpolation
+            for p, p_targ in zip(policy.parameters(), target_policy.parameters()):
+                p_targ.data.copy_(polyak*p_targ.data + (1-polyak)*p.data)
 
-                for p, p_targ in zip(value_net.parameters(),
-                    target_value_net.parameters()):
-                    p_targ.data.copy_(polyak*p_targ.data + (1-polyak)*p.data)
-
+            for p, p_targ in zip(value_net.parameters(),target_value_net.parameters()):
+                p_targ.data.copy_(polyak*p_targ.data + (1-polyak)*p.data)
+        
+        
         if i % log_interval == 0 or i == 1:
             # loss from policy and value 
             for k, v in lossvals.items():
                 logger.record_tabular(k, np.mean(v))
+            
+            
             
             # evaluate the policy $n_trials times
             # TODO use parallel env sampler here

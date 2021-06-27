@@ -15,13 +15,10 @@ parser.add_argument('--nsteps', type=int, default=128,
                    help='length of sampled trajectory')
 parser.add_argument('--nupdates', type=int, default=100,
                    help='number of updates to perform between sampling new experiences')
-parser.add_argument('--buf-size', type=int, default=10000,
+parser.add_argument('--buf-size', type=int, default=1000000,
                    help='replay buffer size')
 
-parser.add_argument('--model-update-frequency', type=int, default=5,
-                   help='number of iterations between updating target models')
-
-parser.add_argument('--polyak', type=float, default=0.5, 
+parser.add_argument('--polyak', type=float, default=0.99, 
                    help='linear intepolation factor used to update current model')
 parser.add_argument('--gamma', type=float, default=0.99, 
                    help='discount factor')
@@ -56,7 +53,6 @@ DDPG(
     pi_lr=args.pi_lr,
     v_lr=args.v_lr,
     polyak=args.polyak,
-    model_update_frequency=args.model_update_frequency,
     batch_size=args.batch_size,
     log_interval=args.log_interval,
     max_grad_norm=args.max_grad_norm,
