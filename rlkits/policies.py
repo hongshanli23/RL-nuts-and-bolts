@@ -36,17 +36,20 @@ class RandomPolicyWithValue:
 
 class DeterministicPolicy:
     """Deterministic policy for continuous action space"""
-    def __init__(self, ob_space, ac_space, ckpt_dir, **network_kwargs):
+    def __init__(self, ob_space, ac_space, action_range, 
+                 ckpt_dir, **network_kwargs):
         self.ob_space = ob_space
         self.ac_space = ac_space
         self.ac_space_dim = np.prod(ac_space.shape).item()
         self.ckpt_dir = ckpt_dir        
+        self.action_range = action_range
         
         self.input_dim = np.prod(self.ob_space.shape).item()
         self.model = MLP(
             input_shape=self.input_dim, output_shape=self.ac_space_dim,
             **network_kwargs
         )
+        
         
     def __call__(self, obs):
         obs = self.transform_input(obs)
@@ -74,12 +77,11 @@ class DeterministicPolicy:
         x = self.transform_input(x)
         with torch.no_grad():
             y = self.model(x)
-        return y.numpy()
+        return np.clip(y.numpy(), self.action_range[0], self.action_range[1])
 
     def save_ckpt(self, postfix=''):
         if not os.path.exists(self.ckpt_dir):
             os.makedirs(self.ckpt_dir)
-
         ckpt = {
             "model": self.model.state_dict()
         }

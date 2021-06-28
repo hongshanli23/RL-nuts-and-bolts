@@ -1,6 +1,5 @@
 from rlkits.policies import RandomPolicyWithValue
 from rlkits.policies import PolicyWithValue
-from rlkits.policies import PolicyWithValueSingleModel
 from rlkits.sampler import ParallelEnvTrajectorySampler
 from rlkits.sampler import estimate_Q
 from rlkits.env_batch import ParallelEnvBatch
@@ -150,11 +149,27 @@ def profile():
     env.close()
     return
 
+
+def test_running_mean_std():
+    from rlkits.running_mean_std import RunningMeanStd
     
+    rms = RunningMeanStd(epsilon=1e-8, shape=(2, 5))
+    
+    total = np.zeros((100, 2, 5), dtype=np.float64)
+    for i in range(100):
+        x = np.random.rand(2, 5)
+        total[i] = x
+        rms.update(np.array([x]))
+    
+    
+    np.testing.assert_almost_equal(rms.mean, np.mean(total, axis=0))
+    np.testing.assert_almost_equal(rms.std, np.std(total, axis=0))
+    return
 
 if __name__=='__main__':
     #test_sampler()
     #test_policy_with_value()
     #test_parallel_env_sampler()
     #profile()
-    test_policy_with_one_backbone()
+    #test_policy_with_one_backbone()
+    test_running_mean_std()

@@ -30,6 +30,11 @@ parser.add_argument('--max-grad-norm', type=float, default=0.1,
                    help='maximum norm of gradients in each nn layer')
 parser.add_argument('--batch-size', type=int, default=128,
                    help='batch size of each policy update')
+parser.add_argument('--l2-weight-decay', type=float, default=1e-4,
+                   help='l2 weight decay for actor and critic')
+parser.add_argument('--clip-action', action="store_true", 
+                   help='clip action to [-1, 1]')
+
 parser.add_argument('--log-interval', type=int, default=1,
                    help='logging frequency')
 parser.add_argument('--log-dir', type=str, default="/tmp/ddpg",
@@ -56,6 +61,8 @@ DDPG(
     batch_size=args.batch_size,
     log_interval=args.log_interval,
     max_grad_norm=args.max_grad_norm,
+    clip_action=True,
+    l2_weight_decay=args.l2_weight_decay,
     log_dir=args.log_dir,
     ckpt_dir=args.ckpt_dir,
     hidden_layers=args.hidden_layers,
