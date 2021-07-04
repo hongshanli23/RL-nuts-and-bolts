@@ -12,8 +12,11 @@ def ortho_init(m: nn.Module, init_scale=math.sqrt(2)):
 
 
 class MLP(nn.Module):
+    """
+    No activation is applied to the output layer
+    """
     def __init__(self, *, input_shape, output_shape, hidden_layers,
-                 activation=torch.nn.Tanh):
+            activation=nn.ReLU):
         super(MLP, self).__init__()
         if isinstance(input_shape, tuple):
             input_shape = input_shape[0]

@@ -4,9 +4,11 @@ import gym
 import numpy as np
 from typing import List
 import os
+import sys
+
 import torch
 from torch.distributions import Normal, Categorical
-import sys
+import torch.nn.functional as F
 
 from rlkits.models import MLP, MLP2heads
 from rlkits.env_batch import SpaceBatch
@@ -36,13 +38,12 @@ class RandomPolicyWithValue:
 
 class DeterministicPolicy:
     """Deterministic policy for continuous action space"""
-    def __init__(self, ob_space, ac_space, action_range, 
+    def __init__(self, ob_space, ac_space,
                  ckpt_dir, **network_kwargs):
         self.ob_space = ob_space
         self.ac_space = ac_space
         self.ac_space_dim = np.prod(ac_space.shape).item()
         self.ckpt_dir = ckpt_dir        
-        self.action_range = action_range
         
         self.input_dim = np.prod(self.ob_space.shape).item()
         self.model = MLP(
@@ -50,13 +51,15 @@ class DeterministicPolicy:
             **network_kwargs
         )
         
-        
     def __call__(self, obs):
         obs = self.transform_input(obs)
-        return self.model(obs)
+        return F.tanh(self.model(obs))
         
     def parameters(self):
         return self.model.parameters()
+    
+    def reset(self):
+        pass
     
     def average_weight(self):
         pi = 0.0 
@@ -74,10 +77,14 @@ class DeterministicPolicy:
     
     def step(self, x):
         """Take action at the current state of the env"""
-        x = self.transform_input(x)
         with torch.no_grad():
-            y = self.model(x)
-        return np.clip(y.numpy(), self.action_range[0], self.action_range[1])
+            action = self(x)
+        return action.numpy() 
+
+    def random_action(self):
+        """Take random action"""
+        action = np.random.uniform(-1.0, 1.0)
+        return action
 
     def save_ckpt(self, postfix=''):
         if not os.path.exists(self.ckpt_dir):

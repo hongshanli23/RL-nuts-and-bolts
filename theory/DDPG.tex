@@ -38,6 +38,11 @@ We can construct an exploration policy $\mu^{\prime}$
     \mu^{\prime}(s_t) = \mu(s_t | \theta^{\mu}_t) + \mathsrc{N}
 \]
 
+Add random process to action
+
+\textbf{Ornstein-Uhlenbeck Process} This process depends on where the actor
+is in the env. The deeper down into the env, the less random this process
+becomes. 
 
 Implementation details:
 1. Rescale action into [-1, 1], 
@@ -51,6 +56,9 @@ Implementation details:
 9. Keep moving average of return, observation
 10. Don't forget to scale the action back when use it for env
 11. target network is updated in each 
+12. don't use parallel env (for easy debugging) 
+13. if the algorithm works in single env works, jazz up using MPI; 
+each MPI process has its own env
 
 Suppose we have a perfect $Q$-value estimator $Q_{\theta}(s, a)$, then
 can we use it to learn a policy with off-policy alogorithm. This is 
