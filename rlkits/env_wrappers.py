@@ -14,6 +14,21 @@ class AutoReset(gym.Wrapper):
             obs = self.env.reset()
         return obs, rew, done, info
     
+class RecoverAction(gym.Wrapper):
+    """recover from normalized action
+    Actions coming from the policy is normalized to [-1, 1];
+    recover it to [action_space.low, action_space.high]
+    """
+    def __init__(self, env):
+        super(RecoverAction, self).__init__(env)
+    
+    def step(self, action):
+        act_k = (self.action_space.high - self.action_space.low)/ 2.
+        act_b = (self.action_space.high + self.action_space.low)/ 2.
+
+        action = act_k*action + act_b
+        obs, rew, done, info = self.env.step(action)
+        return obs, rew, done, info
     
 class TransformReward(gym.Wrapper):
     """Apply transformation of rewards"""
