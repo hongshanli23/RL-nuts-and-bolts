@@ -1,5 +1,5 @@
 import numpy as np
-
+from ipdb import set_trace as breakpoint
 
 class RingBuffer(object):
     def __init__(self, maxlen, shape, dtype='float32'):
@@ -30,16 +30,15 @@ class RingBuffer(object):
             # This should never happen.
             raise RuntimeError()
         self.data[(self.start + self.length - 1) % self.maxlen] = v
-        return 
-    
+        return
+
     def batch_append(self, v):
         """Append a batch of experiences
         v: numpy array such that axis 0 is the batch dimension
         """
         for _v in v:
             self.append(_v)
-        return 
-        
+        return
 
 def array_min2d(x):
     x = np.array(x)
@@ -77,11 +76,10 @@ class Memory(object):
         }
         return result
 
-    def append(self, obs0, action, reward, obs1, terminal1, 
-               parallel_env=True, training=True):
+    def append(self, obs0, action, reward, obs1, terminal1,
+               parallel_env=False, training=True):
         if not training:
             return
-        
         if parallel_env:
             # each input has a batch dimension
             self.observations0.batch_append(obs0)

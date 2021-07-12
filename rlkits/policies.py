@@ -1,5 +1,4 @@
 # RL agents
-
 import gym
 import numpy as np
 from typing import List
@@ -38,52 +37,57 @@ class RandomPolicyWithValue:
 
 class DeterministicPolicy:
     """Deterministic policy for continuous action space"""
+
     def __init__(self, ob_space, ac_space,
                  ckpt_dir, **network_kwargs):
         self.ob_space = ob_space
         self.ac_space = ac_space
         self.ac_space_dim = np.prod(ac_space.shape).item()
-        self.ckpt_dir = ckpt_dir        
-        
+        self.ckpt_dir = ckpt_dir
+
         self.input_dim = np.prod(self.ob_space.shape).item()
         self.model = MLP(
             input_shape=self.input_dim, output_shape=self.ac_space_dim,
             **network_kwargs
         )
-        
+
     def __call__(self, obs):
         obs = self.transform_input(obs)
-        return F.tanh(self.model(obs))
-        
+        return torch.tanh(self.model(obs))
+
     def parameters(self):
         return self.model.parameters()
-    
+
     def reset(self):
         pass
-    
+
     def average_weight(self):
-        pi = 0.0 
+        pi = 0.0
         cnt = 0
         for p in self.parameters():
-            pi+= torch.mean(p.data)
-            cnt+=1
+            pi += torch.mean(p.data)
+            cnt += 1
         pi /= cnt
         return pi.numpy()
-    
-    def transform_input(self, x):   
+
+    def transform_input(self, x):
+        if isinstance(x, np.ndarray):
+            x = torch.from_numpy(x.astype(np.float32))
         if len(x.shape) == 1:
             x = torch.unsqueeze(x, dim=0)
         return x
-    
+
     def step(self, x):
         """Take action at the current state of the env"""
         with torch.no_grad():
             action = self(x)
-        return action.numpy() 
+        return action.numpy().reshape(self.ac_space.shape)
 
     def random_action(self):
         """Take random action"""
-        action = np.random.uniform(-1.0, 1.0)
+
+        action = np.random.uniform(-1.0, 1.0,
+                                   size=self.ac_space.shape)
         return action
 
     def save_ckpt(self, postfix=''):
@@ -93,7 +97,6 @@ class DeterministicPolicy:
             "model": self.model.state_dict()
         }
         torch.save(ckpt, os.path.join(self.ckpt_dir, f"ckpt-{postfix}.pth"))
-        return
 
     def load_ckpt(self, ckptfile):
         ckpt = torch.load(ckptfile)
@@ -105,12 +108,13 @@ class QNetForContinuousAction:
     """Function approximator for state action value Q(s, a) with a
     being continuous
     """
+
     def __init__(self, ob_space, ac_space, ckpt_dir, **network_kwargs):
         self.ob_space = ob_space
         self.ac_space = ac_space
         self.ac_space_dim = np.prod(ac_space.shape).item()
-        self.ckpt_dir = ckpt_dir        
-        
+        self.ckpt_dir = ckpt_dir
+
         self.input_dim = np.prod(self.ob_space.shape).item() + \
             np.prod(self.ac_space.shape).item()
 
@@ -118,24 +122,25 @@ class QNetForContinuousAction:
             input_shape=self.input_dim, output_shape=1,
             **network_kwargs
         )
+
     def parameters(self):
         return self.model.parameters()
-    
+
     def __call__(self, obs, acs):
         obs, acs = self.transform_input(obs, acs)
         assert obs.shape[0] == acs.shape[0]
         x = torch.cat([obs, acs], dim=1)
         return self.model(x)
-        
+
     def average_weight(self):
-        pi = 0.0 
+        pi = 0.0
         cnt = 0
         for p in self.parameters():
-            pi+= torch.mean(p.data)
-            cnt+=1
+            pi += torch.mean(p.data)
+            cnt += 1
         pi /= cnt
         return pi.numpy()
-    
+
     def save_ckpt(self, postfix=''):
         if not os.path.exists(self.ckpt_dir):
             os.makedirs(self.ckpt_dir)
@@ -143,11 +148,10 @@ class QNetForContinuousAction:
         ckpt = {
             "model": self.model.state_dict()
         }
-        torch.save(ckpt, 
+        torch.save(ckpt,
                    os.path.join(self.ckpt_dir, f"ckpt-{postfix}.pth"))
         return
-    
-            
+
     def transform_input(self, *args):
         new_args = []
         for i, x in enumerate(args):
@@ -155,8 +159,8 @@ class QNetForContinuousAction:
                 x = torch.unsqueeze(x, dim=0)
             new_args.append(x)
         return new_args
-    
-    
+
+
 class PolicyWithValue:
     def __init__(self, ob_space, ac_space, ckpt_dir, **network_kwargs):
         """
@@ -168,23 +172,23 @@ class PolicyWithValue:
 
         self.ac_space = ac_space
         self.ac_dim = len(ac_space.shape)
-        
+
         self.ckpt_dir = ckpt_dir
-        
+
         if isinstance(ob_space, SpaceBatch):
-            # parallel env 
+            # parallel env
             self.n = ob_space.sample().shape[0]
         else:
             # single env
             self.n = 1
-        
+
         if isinstance(ac_space, SpaceBatch):
             ac_space_type = type(ac_space.spaces[0])
         else:
             ac_space_type = type(ac_space)
-            
+
         self.input_dim = np.prod(self.ob_space.shape).item()
-        
+
         if ac_space_type is gym.spaces.Box:
             self.output_dim = np.prod(self.ac_space.shape).item()
         elif ac_space_type is gym.spaces.Discrete:
@@ -214,26 +218,25 @@ class PolicyWithValue:
         self.value_net = MLP(
             input_shape=self.input_dim, output_shape=1, **network_kwargs
         )
-        
+
     def average_weight(self):
         """Get average weight of the policy and value net"""
-        pi = 0.0 
+        pi = 0.0
         cnt = 0
         for p in self.policy_net.parameters():
-            pi+= torch.mean(p.data)
-            cnt+=1
+            pi += torch.mean(p.data)
+            cnt += 1
         pi /= cnt
-        
+
         v = 0.0
         cnt = 0
         for p in self.value_net.parameters():
-            v+= torch.mean(p.data)
-            cnt+=1
+            v += torch.mean(p.data)
+            cnt += 1
         v /= cnt
         return pi, v
-        
-        
-    def transform_input(self, x):   
+
+    def transform_input(self, x):
         if len(x.shape) == 1:
             x = np.expand_dims(x, axis=0)
         x = torch.from_numpy(x).float()
@@ -249,11 +252,11 @@ class PolicyWithValue:
         with torch.no_grad():
             y = self.policy_net(x)
             dist = self.dist(y)
-            
+
         if dist is None:
             print("Policy net blows up -- Bad")
             self.save_ckpt()
-            
+
         action = dist.sample()
         log_prob = dist.log_prob(action)
         return (
@@ -266,14 +269,13 @@ class PolicyWithValue:
         with torch.no_grad():
             v = self.value_net(x)
         return v.numpy().squeeze(axis=1)
-    
 
     def dist(self, params):
         """Get a distribution of actions"""
         if self.continuous:
             assert params.shape[-1] == 2  # mean and log of std
             mean, logstd = torch.split(params, [1, 1], dim=1)
-            try: 
+            try:
                 m = Normal(mean, torch.exp(logstd))
                 return m
             except Exception as e:
@@ -290,7 +292,6 @@ class PolicyWithValue:
                 print(e)
                 self.save_ckpt('dead')
                 sys.exit()
-                
 
     def save_ckpt(self, postfix=''):
         if not os.path.exists(self.ckpt_dir):
@@ -309,5 +310,3 @@ class PolicyWithValue:
         self.policy_net.load_state_dict(ckpt["policy_net"])
         self.value_net.load_state_dict(ckpt["value_net"])
         return
-
-    
