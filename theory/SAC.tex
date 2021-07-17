@@ -1,0 +1,40 @@
+\documentclass{article}
+\usepackage{macro}
+\begin{document}
+
+SAC trains the agent by adding entropy of the action into reward. The 
+optimization problem becomes 
+\[
+    \pi^{*} = \argmax_{\pi} \E_{\tau \sim \pi}[
+        \sum_{t=0}^{\infty}\gamma^t(R(s_t, a_t, s_{t+1}) + \alpha 
+        H(\pi(\cdot | s_t)))]
+\]
+
+The value function of the states becomes
+\[
+    V^{\pi}(s) = \E_{\tau\sim\pi}[
+        \sum_{t=0}^{\infty} \gamma^t (
+        R(s_t, a_t, s_{t+1}) + \alpha H(\pi(s))
+        )]
+\]
+
+The state action value is changed to include the entropy at each time
+step except the first one.  
+
+\[
+    Q^{\pi}(s, a) = \E_{\tau\sim\pi}
+\]
+except ex
+
+\begin{algorithm}[H]
+\caption{Soft Actor-Critic}
+\label{alg}
+\end{algorithm}
+
+\begin{algorithmic}
+\STATE Input: initial policy parameter $\theta$, $Q$-function 
+parameters $\phi$, emtpy replay buffer $D$
+\STATE Set target parameters equal to main parameters 
+$\theta_{targ} \leftarrow \theta$, $\phi_{targ} \leftarrow \phi$
+
+\REPEAT
