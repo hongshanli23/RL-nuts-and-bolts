@@ -1,7 +1,12 @@
 \documentclass{article}
+\usepackage[T1]{fontenc}
+\usepackage[utf8]{inputenc}
+
 \usepackage{macro}
+
 \begin{document}
 
+SAC is a off-policy alogrithm. 
 SAC trains the agent by adding entropy of the action into reward. The 
 optimization problem becomes 
 \[
@@ -22,9 +27,135 @@ The state action value is changed to include the entropy at each time
 step except the first one.  
 
 \[
-    Q^{\pi}(s, a) = \E_{\tau\sim\pi}
+    Q^{\pi}(s, a) = \E_{\tau\sim\pi} [
+        \sum_{t=0}^{\infty}\gamma^t(
+        R(s_t, a_t, s_{t+1}))
+        + \sum_{t=1}^{\infty}\alpha \gamma^t H(\pi(s_t)) 
+        | s_0=s, a_0=a]
 \]
-except ex
+
+With these definition of $V$ and $Q$, we have
+\[
+    V^{\pi}(s) = \E_{\sprime\in P}[R(s, a, \sprime) + \gamma V^{\pi}(\sprime)]
+\]
+
+SAC learns a policy $\pi_{\theta}$ and two $Q$-functions $Q_{\phi_1}$ and 
+$Q_{\phi_2}$. 
+
+Similarities to DDPG and TD3
+\begin{itemize}
+    \item both $Q$-functions are learned with MSE minimization, by regressing to a single shared target.
+    \item the shared target is computed using target $Q$-networks and 
+        polyak interpolation,
+    \item \textbf{clipped double-$Q$} trick is used to avoid 
+        overconfidence
+\end{itemize}
+
+Differences to DDPG and TD3
+\begin{itemize}
+    \item target includes term from SAC's entropy regularization
+    \item next state actions used in target come from \textbf{current}
+        policy
+    \item no explicit policy smooth (in DDPG and TD3 random noise is 
+        added to action for exploration). SAC trains a stochastic
+        policy.
+\end{itemize}
+
+The entropy term and next state action term in $Q^{\pi}$ are computed
+using the \textbf{current policy}. The next state $\sprime$ is sampled
+from the replay buffer. But this means additional computed
+is need to sample the next action. 
+
+The estimate of $Q$-value (based one sample from experience replay) is
+\[
+    Q^{\pi} = r + \gamma(Q^{\pi}(\sprime, \tilde \aprime) 
+    - \alpha \log \pi(\tilde \aprime | \sprime)), 
+    \tilde \aprime \sim \pi(\cdot | \sprime)
+\]
+
+We use $\tilde \aprime$ to emphasize that next state action has to come
+from the current policy. 
+
+\textbf{Update the Q-function}
+
+SAC trains 2 $Q$-function targets, the smaller one is used to compute
+the sample backup. (like in TD3)
+
+The loss for the $Q$-networks in SAC are:
+\[
+    L(\phi_i, \D) = \E_{(s,a,r,\sprime,d)\sim\D)}[
+        (Q_{\phi_i}(s,a)-y(r,\sprime,d))^2]
+\]
+where
+\[
+    y(r,\sprime,d)=r + \gamma(1-d)(\min_{j=1,2}
+    Q_{\phi_{targ,j}}(\sprime, \tilde \aprime) - 
+    \alpha \log \pi_{\theta}(\tilde \aprime | \sprime)
+    )
+\]
+
+\textbf{Update the policy}
+
+The policy should, in each state, act to maximize the expected future
+return plus the expected entropy,i.e. it should maximize $V^{\pi}(s)$
+\begin{align*}
+    V^{\pi}(s) = \E_{a \sim \pi}[Q^{\pi}(s,a)] + \alpha H(\pi(\cdot|s)) \\
+    & = \E_{a \sim\pi}[Q^{\pi}(s,a) - \alpha\log\pi(a|s)]
+\end{align*}
+
+Use \textbf{reparametrization trick} for policy optimization, in which
+a sample from $\pi(\cdot | s)$  is drawn by computing a deterministic
+function of state, policy params, and independent noise. We squash 
+the Gaussian policy through $\tanh$ fun
+\[
+    \tilde a_{\theta}(s,\zeta) = \tanh(\mu_{\theta}(s) + 
+    \sigma_{\theta}(s)\odot \zeta), \zeta \sim N(0, 1)
+\]
+
+1. $\tanh$ changes the distribution of policy (no longer Gaussain),
+but one can still compute the log probability. If we don't squash
+the Gaussian dist, then it could have infinite entropy. 
+
+2. The standard deviation depends on state. In TRPO, PPO standard 
+deviation can be independent from the state (verity it. In my 
+implementation, std depends on input state). 
+According to openai, SAC does not work if the std is independent from
+the input state. 
+If entropy is part of learning objective, then naturally std should be
+a function of input state, because entropy is a function of std. 
+
+\todo{experiment with constant std}
+
+Why reparametrization is useful?
+It let us write expectation over $\zeta$ rather than action, which 
+depends on the policy parameters.
+\[
+    \E_{a\sim\pi_{\theta}}[Q^{\pi_{\theta}}(s,a) - 
+    \alpha\log\pi_{\theta}(a|s)] 
+    = \E_{\zeta\sim N}[Q^{\pi_{\theta}}(s, \tilde a(s, \zeta))
+    - \alpha\log \pi_{\theta}(\tilde a(s,\zeta)|s)]
+\]
+
+final step to get the policy loss is to replace $Q^{\pi_{\theta}}$
+with one of our function approximators $Q_{\phi_i}$ (the less confident
+one). The optimization objective becomes
+\[
+    \max_{\theta}\E_{s\sim\D,\zeta\sim N}[
+        \min_{j=1,2}Q_{\phi_j}(s, \tilde a_{\theta}(s,\zeta))
+        - \alpha\log \pi_{\theta}(\tilde a_{\theta}(s,\zeta)|s)
+    ]
+\]
+it is almost similiar to DDPG's training objective. 
+
+
+
+Questions:
+
+Why in target loss, the next state action needs to be sampled from the 
+current policy? The intuition is with better policy, can you make a 
+better estimate of state action value. But it behaves like a on-policy
+algorithm.
+
 
 \begin{algorithm}[H]
 \caption{Soft Actor-Critic}
@@ -32,9 +163,63 @@ except ex
 \end{algorithm}
 
 \begin{algorithmic}
-\STATE Input: initial policy parameter $\theta$, $Q$-function 
-parameters $\phi$, emtpy replay buffer $D$
+% \STATE Input: initial policy parameter $\theta$, $Q$-function 
+% parameters $\phi$, emtpy replay buffer $D$
+% \STATE Set target parameters equal to main parameters 
+% $\theta_{targ} \leftarrow \theta$, $\phi_{targ} \leftarrow \phi$
+% \REPEAT
+% \FOR
+% \ENDFOR
+% \IF
+% \ENDIF
+% \UNTIL{convergence}
+\STATE Input: initial policy params $\theta$, $Q$-function params 
+$\phi_1$ and $\phi_2$, empty replay buffer $\D$.
 \STATE Set target parameters equal to main parameters 
-$\theta_{targ} \leftarrow \theta$, $\phi_{targ} \leftarrow \phi$
-
+    $\phi_{targ,1}\leftarrow \phi_1, \phi_{targ,2}\leftarrow \phi_2$
 \REPEAT
+    \STATE observe state $s$ and select action 
+    $a\sim\pi_{\theta}(\cdot|s)$
+    \STATE execute $a$ in the env
+    \STATE observe next state $\sprime, r, d$ signal from env
+    \STATE store $(s,a,r,\sprime,d)$ in the buffer
+    \STATE if $\sprime$ is terminal, then reset env
+    \IF {it's time to update}
+        \FOR{j in range(num of updates)}
+            \STATE randomly sample a batch of transitions, 
+            $B=\{(s,a,r,\sprime,d)\}$ from $\D$
+            \STATE compute target for $Q$ functions
+            \[
+                y(r,\sprime,d) = r + \gamma(1-d)(\min_{i=1,2}
+                Q_{\phi_{targ,i}}(\sprime,\tilde\aprime)
+                - \alpha \log \pi_{\theta}(\tilde\aprime|\sprime)),
+                \tilde \aprime \sim \pi_{\theta}(\cdot|\sprime)
+            \]
+            \STATE update $Q$-fn by one step of gradient descent
+            \[
+                \nabla_{\phi_i}\frac{1}{|B|}
+                \sum_{(s,a,r,\sprime,d)\in B}
+                (Q_{\phi_i}(s,a) - y(r,\sprime,d))^2
+            \]
+            \STATE Update policy by one step gradien ascent
+            \[
+                \nabla_{\theta}\frac{1}{|B|}
+                \sum_{s\in B}(\min_{i=1,2}
+                Q_{\phi_i}(s,\tilde a_{\theta}(s)) - 
+                \alpha\log\pi_{\theta}(\tilde a_{\theta}(s)|s))
+            \]
+            where $\tilde a_{\theta}(s)$ is a sample from
+            $\pi_{\theta}(\cdot|s)$ which is differentiable wrt $\theta$
+            via reparam trick.
+            \STATE update target networks
+            \[
+                \phi_{targ,i}\leftarrow \rho\phi_{targ,i} + 
+                (1-\rho)\phi_i
+            \]
+        \ENDFOR
+    \ENDIF
+\UNTIL{convergence}
+\end{algorithmic}
+
+\end{document}
+    
