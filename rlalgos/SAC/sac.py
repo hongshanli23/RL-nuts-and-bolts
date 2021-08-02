@@ -1,5 +1,43 @@
 
 
+# When computing loss of a policy, should we use the action from the
+# replay buffer (older policy), or should we use the action sampled
+# from the current policy ?
+
+# According to SAC paper, it seems that value functions are updated
+# using actions sampled from the old policy, whereas the policy is
+# updated through the actions sampled from the current policy via
+# reparametrization trick. Why it makes sense to do it this way?
+
+# For value net update, using the action sampled from the current
+# policy amounts to a better label. The current policy makes an
+# action so that the corresponding state action value Q(s, a) is a more
+# accurate approximation of the state value V(s).
+
+# For policy update, we need the policy gradient of the current
+# policy, so naturally we should sample an action (for a state
+# retrieved from replay buffer).
+
+# In DDPG, the same better label for value function is given by
+# the state action approximation of the target net over action
+# sampled from target policy (on the next state).
+
+# the reparametrization makes the distribution of
+# acs_curr independent from the parameters of the
+# policy net.
+# reparametrization is a way to write the expectation
+# independent from the parameter
+
+# The advantage of reparametrization
+# https://gregorygundersen.com/blog/2018/04/29/reparameterization/
+# 1. It allows us to re-write gradient of expectation
+# as expectation of gradient. Hence, we can use Monte
+# Carlo method to estimate the gradient.
+# 2. Stability: reparametrization limits the variance
+# of the estimate. It basically caps the variance of
+# the estimate to the variance of N(0,1)
+# To see how reparam helps stability, checkout
+# https://nbviewer.jupyter.org/github/gokererdogan/Notebooks/blob/master/Reparameterization%20Trick.ipynb
 
 def compute_loss(policy, Q1, Q1_targ, Q2, Q2_targ,
                  batch, gamma, alpha):
@@ -10,11 +48,37 @@ def compute_loss(policy, Q1, Q1_targ, Q2, Q2_targ,
         obs, acs, rews, nxs, dones)
     # target for value net
     with torch.no_grad():
+        # next action needs to be sampled from the CURRENT policy
+        # in contrast to DDPG
+        nxa = policy(nxs)
+        nxv = torch.minimum(
+            Q1_targ(nxs, nxa), Q2_targ(nxs, nxa)
+        )
 
-        nx_state_vals = target_value_net(nxs,
-                                         policy(nxs))
-    assert rews.shape == nx_state_vals.shape, f"{rews.shape}, {nx_state_vals.shape}"
-    q_targ = rews + (1 - dones)*gamma*nx_state_vals
+    assert rews.shape == nxv.shape, f"{rews.shape}, {nxv.shape}"
+
+    # target for value net
+    y = rews + gamma*(1-dones)*(nxv - alpha*policy.log_proba(nxa))
+
+    # value loss
+    q1, q2 = Q1(obs, acs), Q2(obs, acs)
+    Q1_loss = F.mse_loss(q1, y)
+    Q2_loss = F.mse_loss(q2, y)
+
+    # policy loss
+    # sample an action from \pi(\cdot | s) via reparam
+    m, std = policy(obs)
+    acs_curr = torch.tanh(
+        m + std*Gaussian(0, 1).sample())
+
+    # log probability of acs_curr
+    # pushing m + std * \zeta changes the distribtution
+    # log probability should be the log probability
+    # of m + std*Gaussian(0,1)
+    # Ultimately, we want to encourage entropy, so it is
+    # equivalent to make std a bit larger
+    policy_loss = torch.mean(
+        torch.minimum(q1, q2) - alpha*policy.log_proba(
 
     # predicted q-value for the current state and action
     q_pred = value_net(obs, acs)

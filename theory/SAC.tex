@@ -221,5 +221,26 @@ $\phi_1$ and $\phi_2$, empty replay buffer $\D$.
 \UNTIL{convergence}
 \end{algorithmic}
 
+\textbf{Reparametrization Trick}
+
+\textbf{Squashing function} The policy network outputs mean and std of a
+Gaussian distribution, where the action is sampled from. 
+\[
+    a = m + \sigma * \zeta, \zeta \sim N(0, 1)
+\]
+One trick to make the training more stable is to squash it into [0,1] 
+via $\tanh$ function. 
+
+Let $u \in R^{D}$ be a random variable with density $\mu(u|s)$, what is 
+the density of $a = \tanh(u)$?
+
+The more general framework is how the same function changes under 
+change of coordinate. 
+Let $x$ be a coordinate system on $\R^n$ and let $f$ be a function on 
+$\R^n$ represented through $x$. Now, consider a change of coordinate
+$y = y(x)$. Then what is the new representation of $f$ in $y$?
+
+Review differential calculus on manifold.
+
 \end{document}
     
