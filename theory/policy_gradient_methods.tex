@@ -3,7 +3,7 @@
 \usepackage{graphicx}
 \graphicspath{ {./} }
 \title{Policy Gradient Methods for Deep Reinforcement Learning}
-\author{Hongshan Li}
+\author{Hongshan Li(hongshal@amazon.com)}
 \begin{document}
 \maketitle
 
@@ -104,16 +104,119 @@ from which the agent samples actions.
 
 So with the model of the env, we can write down the expected total 
 reward if we follow the policy $\pi$. Assume the initial state is $s$
-\[
-    v_{\pi}(s) \definedas \E_{\pi}
-\]
+\begin{align}
+    v_{\pi}(s) & \definedas \E_{\tau \sim \pi}[G_0 | S_0 = s] \\
+        & \E_{\tau sim \pi}(R_1 + \gamma v_{\pi}(s^{\prime}) 
+\end{align}
+$s^{\prime}$ denotes the next state of the env.
+$\tau$ denotes a trajectory sampled from the policy $\pi$.
 
+
+We can use Monte Carlo method to estimate $v_{\pi}(s)$ by running the 
+policy a couple of times and compute the average return $G_0$. 
+
+
+\textbf{Policy Iteration} How do we improve the policy? That's all RL is 
+about. In supervised learning, the objective is to find a parametric
+model $p_{\theta}$ that maximize the likelihood of the input dataset;
+in RL, the objective is to train a policy that gets the highest reward
+from the env. 
 
 A fundamental difference supervised learning and RL is that data is 
 completely determined before any training, whereas in RL data is
 dynamically generated through interaction with the environment. 
 This means the distribution of the data for SL is static and the 
 distribution of data for RL changes as the agent learns. 
+
+Suppose we have a value function $v_{\pi}$ for the current policy $\pi$,
+one naive way to improve $\pi$ is to "look ahead one step of time". 
+At $t$, we are at $S_t=s$, the policy results an action $\pi(s)$, 
+we want whether it 
+is a good idea to choose a different action $a \neq \pi(s)$? We can simply
+take $a$ and follow $\pi$ afterwards. This is defined as the state-action
+value 
+\[
+    q_{\pi}(s, a) = \E[R_{t+1} + \gamma v_{\pi}(S_{t+1}) | S_t=s, A_t=a]
+\]
+
+Recall
+\[
+    v_{\pi}(s) = \E[R_{t+1} + \gamma v_{\pi}(S_{t+1}) | S_t=s, A_t=\pi(s)]
+\]
+If $q_{\pi}(s, a) - v_{\pi}(s) > 0$, then it is a good idea to assume 
+action $a$ at $s$. 
+
+This gives us a template for generalized policy iteration
+
+\begin{algorithm}[H]
+    \caption{Generalized Policy Iteration}
+\end{algorithm}
+
+\begin{algorithmic}
+    \STATE Input: initial policy $\pi$
+    \REPEAT
+    \STATE evaluate the policy $\pi$ and get $v_{\pi}$
+    \FOR{each $s \in \mathbb{S}$}
+    \STATE $old_action\leftarrow \pi(s)$
+    \STATE $\pi(s) \leftarrow \argmax_a \E[r + \gamma v(s^{\prime})$
+    \ENDFOR
+    \UNTIL{$\pi$ stops improving}
+\end{algorithmic}
+
+\section{Function Approximation and Policy Gradient Methods}
+The above generalized policy iteration works pretty well if the underlying
+MPD is finite (finitely states). One gets $v_{\pi}$ by dynamic programing.
+But this becomes intractable if the state space is big. Suppose your 
+state is given as a 2D image with dimension 512x512, then your state
+space is of size $(3x515x512)^{256} \sim 1.5x10^{1510}$. 
+
+Function approximation is the idea that addresses the curse of dimension
+problem when the state space gets big (or even infinite). The idea is 
+if two states are "similiar" the agent should take the similar actions 
+and the value of that states should be similar as well. So we can use
+parametrized functions $v_{\theta}$ and $\pi_{\theta}$ to represents 
+the value and policy tables. The differentiabilities of $v_{\theta}$ 
+and $\pi_{\theta}$ ensures that similar states have similar value and 
+the agent acts similarly. 
+
+Now we are officially in the Deep Reinforcement Learning (DRL) world. 
+\textbf{Policy gradient methods} concerns about the following question:
+How do we move the parameters of $\pi_{\theta}$ so that $\pi_{\theta}$
+improves. "Move" in this context means updating $\theta$ according to 
+the \emph{policy gradient}. 
+
+In tabular method, we have defined the value of a policy. Analogous 
+definition carries over
+\[
+    J(\theta) = v_{\pi_{\theta}}(s)
+\]
+To improve $J(\theta)$, we do the usual calculus trick (gradient ascend)
+\[
+    \theta \leftarrow \theta + \alpha \nabla J(\theta)
+\]
+This is basically the entirty of policy gradient methods.
+
+So the next thing is how to compute $\nabla J(\theta)$ 
+
+
+\begin{theorem}[Policy Gradient Theorem]
+Suppose the state space $\mathbb{S}$ and action space $\mathbb{A}$ 
+are discrete
+\[
+    \nabla J(\theta) \propto \sum_{s}\mu(s)\sum_{a} 
+    \nabla \pi(a|s)q_{\pi}(s, a)
+\]
+where $\mu(s)$ is the \emph{visition} frequency (how often the 
+agent visits state $s$
+
+If $\mathbb{S}$ and $\mathbb{A}$ are continuous
+\[
+    \nabla J(\theta) \propto \int_{\mathbb{S}}\mu(s)\int_{\mathbb{A}} 
+    \nabla\pi(a|s)q_{\pi}(s, a) dsda
+\]
+\end{theorem}
+
+
 
 Talk about value iteration and policy iteration;
 Talk about how tabular methods can be used to achieve

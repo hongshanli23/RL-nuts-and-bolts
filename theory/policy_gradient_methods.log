@@ -1,4 +1,4 @@
-This is pdfTeX, Version 3.141592653-2.6-1.40.22 (TeX Live 2021) (preloaded format=pdflatex 2021.5.29)  9 AUG 2021 23:11
+This is pdfTeX, Version 3.141592653-2.6-1.40.22 (TeX Live 2021) (preloaded format=pdflatex 2021.5.29)  10 AUG 2021 23:29
 entering extended mode
  restricted \write18 enabled.
  %&-line parsing enabled.
@@ -826,7 +826,7 @@ Overfull \hbox (54.66762pt too wide) in paragraph at lines 10--14
 book/first/ebook/node12.html)
  []
 
-<mdp.png, id=7, 426.09187pt x 144.54pt>
+<mdp.png, id=11, 426.09187pt x 144.54pt>
 File: mdp.png Graphic file (type png)
 <use mdp.png>
 Package pdftex.def Info: mdp.png  used on input line 26.
@@ -843,45 +843,48 @@ cmsy/m/n/10 j\OML/cmm/m/it/10 S[]; A[]\OT1/cmr/m/n/10 )$
 
 
 pdfTeX warning: pdflatex (file pdftex.map): cannot open font map file
- <./mdp.png>] [2]
-Overfull \hbox (61.11206pt too wide) in paragraph at lines 133--135
+ <./mdp.png>] [2] [3]
+Overfull \hbox (61.11206pt too wide) in paragraph at lines 236--238
 []\OT1/cmr/m/n/10 History of Re-in-force-ment Learn-ing http://incompleteideas.
 net/book/first/ebook/node12.html 
  []
 
-[3] (./policy_gradient_methods.aux)
+[4] (./policy_gradient_methods.aux)
 Package rerunfilecheck Info: File `policy_gradient_methods.out' has not changed
 .
-(rerunfilecheck)             Checksum: D41D8CD98F00B204E9800998ECF8427E;0.
+(rerunfilecheck)             Checksum: B46F11F0E23B6E15CC69A0FF5AB58180;308.
  ) 
 Here is how much of TeX's memory you used:
- 22047 strings out of 478754
- 415045 string characters out of 5850683
- 698602 words of memory out of 5000000
- 39363 multiletter control sequences out of 15000+600000
- 412051 words of font info for 63 fonts, out of 8000000 for 9000
+ 22102 strings out of 478754
+ 415554 string characters out of 5850683
+ 700619 words of memory out of 5000000
+ 39402 multiletter control sequences out of 15000+600000
+ 412656 words of font info for 65 fonts, out of 8000000 for 9000
  1141 hyphenation exceptions out of 8191
- 131i,6n,136p,489b,325s stack positions out of 5000i,500n,10000p,200000b,80000s
+ 131i,8n,136p,489b,461s stack positions out of 5000i,500n,10000p,200000b,80000s
  </Users/hongshanli/.texlive2021/texmf-var/fonts/pk/ljfour/public/amsfonts/sy
-mbols/msbm10.600pk> </Users/hongshanli/.texlive2021/texmf-var/fonts/pk/ljfour/p
-ublic/rsfs/rsfs10.600pk> </Users/hongshanli/Library/2021/texmf-dist/fonts/pk/lj
-four/public/cm/dpi600/cmex10.pk> </Users/hongshanli/Library/2021/texmf-dist/fon
-ts/pk/ljfour/public/cm/dpi600/cmsy7.pk> </Users/hongshanli/Library/2021/texmf-d
-ist/fonts/pk/ljfour/public/cm/dpi600/cmsy10.pk> </Users/hongshanli/.texlive2021
-/texmf-var/fonts/pk/ljfour/jknappen/ec/tcrm1000.600pk> </Users/hongshanli/Libra
-ry/2021/texmf-dist/fonts/pk/ljfour/public/cm/dpi600/cmr7.pk> </Users/hongshanli
-/Library/2021/texmf-dist/fonts/pk/ljfour/public/cm/dpi600/cmmi7.pk> </Users/hon
-gshanli/Library/2021/texmf-dist/fonts/pk/ljfour/public/cm/dpi600/cmti10.pk> </U
-sers/hongshanli/Library/2021/texmf-dist/fonts/pk/ljfour/public/cm/dpi600/cmmi10
-.pk> </Users/hongshanli/Library/2021/texmf-dist/fonts/pk/ljfour/public/cm/dpi60
-0/cmbx10.pk> </Users/hongshanli/Library/2021/texmf-dist/fonts/pk/ljfour/public/
-cm/dpi600/cmr10.pk> </Users/hongshanli/Library/2021/texmf-dist/fonts/pk/ljfour/
-public/cm/dpi600/cmr12.pk> </Users/hongshanli/Library/2021/texmf-dist/fonts/pk/
-ljfour/public/cm/dpi600/cmr17.pk>
-Output written on policy_gradient_methods.pdf (3 pages, 87088 bytes).
+mbols/msbm7.600pk> </Users/hongshanli/.texlive2021/texmf-var/fonts/pk/ljfour/pu
+blic/cm/cmmi5.600pk> </Users/hongshanli/.texlive2021/texmf-var/fonts/pk/ljfour/
+public/cm/cmbx12.720pk> </Users/hongshanli/.texlive2021/texmf-var/fonts/pk/ljfo
+ur/public/amsfonts/symbols/msbm10.600pk> </Users/hongshanli/.texlive2021/texmf-
+var/fonts/pk/ljfour/public/rsfs/rsfs10.600pk> </Users/hongshanli/Library/2021/t
+exmf-dist/fonts/pk/ljfour/public/cm/dpi600/cmex10.pk> </Users/hongshanli/Librar
+y/2021/texmf-dist/fonts/pk/ljfour/public/cm/dpi600/cmsy7.pk> </Users/hongshanli
+/Library/2021/texmf-dist/fonts/pk/ljfour/public/cm/dpi600/cmsy10.pk> </Users/ho
+ngshanli/.texlive2021/texmf-var/fonts/pk/ljfour/jknappen/ec/tcrm1000.600pk> </U
+sers/hongshanli/Library/2021/texmf-dist/fonts/pk/ljfour/public/cm/dpi600/cmr7.p
+k> </Users/hongshanli/Library/2021/texmf-dist/fonts/pk/ljfour/public/cm/dpi600/
+cmmi7.pk> </Users/hongshanli/Library/2021/texmf-dist/fonts/pk/ljfour/public/cm/
+dpi600/cmti10.pk> </Users/hongshanli/Library/2021/texmf-dist/fonts/pk/ljfour/pu
+blic/cm/dpi600/cmmi10.pk> </Users/hongshanli/Library/2021/texmf-dist/fonts/pk/l
+jfour/public/cm/dpi600/cmbx10.pk> </Users/hongshanli/Library/2021/texmf-dist/fo
+nts/pk/ljfour/public/cm/dpi600/cmr10.pk> </Users/hongshanli/Library/2021/texmf-
+dist/fonts/pk/ljfour/public/cm/dpi600/cmr12.pk> </Users/hongshanli/Library/2021
+/texmf-dist/fonts/pk/ljfour/public/cm/dpi600/cmr17.pk>
+Output written on policy_gradient_methods.pdf (4 pages, 122801 bytes).
 PDF statistics:
- 266 PDF objects out of 1000 (max. 8388607)
- 75 compressed objects within 1 object stream
- 4 named destinations out of 1000 (max. 500000)
- 18 words of extra memory for PDF output out of 10000 (max. 10000000)
+ 406 PDF objects out of 1000 (max. 8388607)
+ 112 compressed objects within 2 object streams
+ 19 named destinations out of 1000 (max. 500000)
+ 26 words of extra memory for PDF output out of 10000 (max. 10000000)
 
