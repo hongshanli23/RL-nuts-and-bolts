@@ -103,30 +103,35 @@ $\pi$ yields a probability distribution over the action space
 from which the agent samples actions. 
 
 So with the model of the env, we can write down the expected total 
-reward if we follow the policy $\pi$. Assume the initial state is $s$
-\begin{align}
-    v_{\pi}(s) & \definedas \E_{\tau \sim \pi}[G_0 | S_0 = s] \\
-        & \E_{\tau sim \pi}(R_1 + \gamma v_{\pi}(s^{\prime}) 
-\end{align}
-$s^{\prime}$ denotes the next state of the env.
+reward if we follow the policy $\pi$. Assume the initial state is $s_0$
+\begin{align*}
+    v_{\pi}(s_0) & \definedas \E_{\tau \sim \pi}[G_0 | S_0 = s_0] \\
+        & \E_{\tau \sim \pi}(R_1 + \gamma v_{\pi}(s_1) 
+\end{align*}
+$s_1$ denotes the next state of the env.
 $\tau$ denotes a trajectory sampled from the policy $\pi$.
 
 
-We can use Monte Carlo method to estimate $v_{\pi}(s)$ by running the 
+
+We can use Monte Carlo method to estimate $v_{\pi}(s_0)$ by running the 
 policy a couple of times and compute the average return $G_0$. 
 
 
-\textbf{Policy Iteration} How do we improve the policy? That's all RL is 
-about. In supervised learning, the objective is to find a parametric
+\textbf{Policy Iteration} How do we improve the policy? That's the entire 
+subject of RL. In supervised learning, the objective is to find a parametric
 model $p_{\theta}$ that maximize the likelihood of the input dataset;
 in RL, the objective is to train a policy that gets the highest reward
 from the env. 
 
-A fundamental difference supervised learning and RL is that data is 
-completely determined before any training, whereas in RL data is
+A fundamental difference supervised learning and RL is that for SL data is 
+completely determined before any training, whereas for RL data is
 dynamically generated through interaction with the environment. 
-This means the distribution of the data for SL is static and the 
-distribution of data for RL changes as the agent learns. 
+This means crappy policy could generate useless data by visiting
+the useless state space. The distribution of data for RL changes over
+time, whereas for SL the distribution is static. 
+
+This might sounds pretty hopeless, how do you overcome the garbage in and 
+garbage out positive feedback loop? Just hang on.
 
 Suppose we have a value function $v_{\pi}$ for the current policy $\pi$,
 one naive way to improve $\pi$ is to "look ahead one step of time". 
@@ -152,16 +157,21 @@ This gives us a template for generalized policy iteration
     \caption{Generalized Policy Iteration}
 \end{algorithm}
 
-\begin{algorithmic}
+\begin{algorithmic}[1]
     \STATE Input: initial policy $\pi$
     \REPEAT
     \STATE evaluate the policy $\pi$ and get $v_{\pi}$
     \FOR{each $s \in \mathbb{S}$}
-    \STATE $old_action\leftarrow \pi(s)$
-    \STATE $\pi(s) \leftarrow \argmax_a \E[r + \gamma v(s^{\prime})$
+    \STATE $oldAction \leftarrow \pi(s)$
+    \STATE $\pi(s) \leftarrow \argmax_a \E[r + \gamma v(s_1)$
     \ENDFOR
-    \UNTIL{$\pi$ stops improving}
+    \UNTIL{$\pi$ stops improving, i.e $oldAction = \pi(s)\forall s$}
 \end{algorithmic}
+
+So this is what you do to overcome the garbage in and garbage out. 
+You can get a good policy by iterating one-step a time.
+
+\section{Value Iteration and Exact Methods}
 
 \section{Function Approximation and Policy Gradient Methods}
 The above generalized policy iteration works pretty well if the underlying
@@ -206,7 +216,7 @@ are discrete
     \nabla J(\theta) \propto \sum_{s}\mu(s)\sum_{a} 
     \nabla \pi(a|s)q_{\pi}(s, a)
 \]
-where $\mu(s)$ is the \emph{visition} frequency (how often the 
+where $\mu(s)$ is the \emph{visition probability} (how often the 
 agent visits state $s$
 
 If $\mathbb{S}$ and $\mathbb{A}$ are continuous
@@ -216,6 +226,88 @@ If $\mathbb{S}$ and $\mathbb{A}$ are continuous
 \]
 \end{theorem}
 
+More details about $\mu(s)$ before moving on the proof.
+Consider the visitation sequencce from state $s$ to $x$
+following the policy $\pi$ after $k$ steps
+\[
+  s\xrightarrow{a\sim \pi(\cdot|s)} s_1 \xrightarrow{a\sim
+  \pi(\cdot|s_1)} s_2 \cdots 
+\]
+(Markov Chain)
+denote the probability of transitioning from state $s$ to $x$ 
+in $k$ steps as $\rho^{\pi}(s\rightarrow x, k)$
+
+Assume for simplicity that we only deal with finite episodic tasks,
+i.e. only allow the agent to take $n$ steps of actions for $n \le \infty$.
+
+\begin{itemize}
+  \item $k=0, \rho^{\pi}(s\rightarrow s, k=0) = 1$
+  \item $\rho^{\pi}(s\rightarrow s_1, k=1)= \sum_a 
+    \pi(a|s)P(s_1|s,a)$ 
+  \item $\rho(s\rightarrow x, k+1) = \sum_{s_1}
+    \rho(s\rightarrow s_1, k)\rho(s_1\rightarrow x, 1)$
+  \item $\eta(x)\definedas \sum_{k}^{n} \rho(s_0\rightarrow x, k)$
+  \item Define $\mu(x) \definedas \frac{\eta(x)}{\sum_x \eta(x)}$ if 
+    $\mathbb{S}$ is discrete and 
+    $\mu(x) \definedas \frac{\eta(x)}{\int_s \eta(x) dx}$ if $\mathbb{S}$ 
+    is continuous. 
+    So $\mu(x)$ becomes a probability mass function (or probability distribution). It can be understood as a measure of how frequent the agent lands at state
+    $x$
+\end{itemize}
+
+With the understanding of $\mu(x)$ as the visitation distribution (relative 
+importance of the state $x$), how we do interpret the policy gradient?
+
+\textbf{Policy gradient is the weighted average of gradient of $\pi(a|s)$
+by the value of action $a$ and relative importance of the state $s$}
+
+\begin{proof}[policy gradient theorem]
+  For notational convenience, write $v(s)$ for $v_{\pi}(s)$ and 
+  $\nabla v(s)$ to mean $\nabla_{\theta}v_{\pi}(s)$, i.e. gradient
+  of $v(s)$ with respect to the parameter $\theta$ of $\pi$.
+  \begin{align*}
+    \nabla v(s) & = \nabla [\sum_{a}\pi(a|s)q_{\pi}(s,a)] \\ 
+        & = \sum_{a}[\nabla \pi(a|s)q_{\pi}(s,a)] + 
+        \sum_a \pi(a|s) \nabla q_{\pi}(s,a) 
+  \end{align*}
+  \[
+    q_{\pi}(s,a) = \sum_{s_1, r} p(s_1, r|s,a)(r + v(s_1))
+  \]
+  so 
+  \begin{align*}
+    \nabla v(s) & = \nabla [\sum_{a}\pi(a|s)q_{\pi}(s,a)] \\ 
+        & = \sum_{a}[\nabla \pi(a|s)q_{\pi}(s,a)] + 
+        \sum_a \pi(a|s) \sum_{s_1}p(s_1|s,a)\nabla v(s_1)
+  \end{align*}
+  \textbf{Note the recursive relation between $\nabla v(s)$ and $\nabla v(s_1)$}
+
+  Write $\phi(s)= \sum_a \nabla \pi(a|s)q(s,a)$ and 
+  $\rho(s\rightarrow s_1, 1) = \sum_a \pi(a|s)p(s_1|s,a)$ 
+
+  So 
+  \begin{align*}
+    \nabla v(s) & = \phi(s) + \sum_{s_1}\rho(s\rightarrow s_1,1)\nabla v(s_1) \\
+      & = \phi(s) + \sum_{s_1}\rho(s\rightarrow s_1,1)\phi(s_1) + 
+      \sum_{s_2}\rho(s\rightarrow s_2,2)\nabla v(s_2) \\
+      & = \phi(s) + \sum_{s_1}\rho(s\rightarrow s_1,1)\phi(s_1) + 
+      \sum_{s_2}\rho(s\rightarrow s_2,2)\phi(s_2) + 
+      \sum_{s_3}\rho(s\rightarrow s_3,3)\nabla v(s_3) \\ 
+      & \vdots \\
+      & = \phi(x) + \sum_{s_1}\rho(s\rightarrow s_1,1)\phi(s_1) + \cdots + 
+      \sum_{s_n}\rho(s\rightarrow s_n,n)\phi(s_n)
+  \end{align*}
+  The unrolling stops after $n$ steps, because we only let the agent to 
+  act $n$ steps. so $v(s_{n+1})$ becomes a constant function and it has no
+  derivative.
+
+  \begin{align*}
+    \nabla v(s) & = \sum_x \sum_{k=0}^{n} \rho(s\rightarrow x, k)\phi(x) \\
+      & = \sum_x \eta(x) \phi(x) \\
+      & = (\sum_x \eta(x))\sum_x \frac{\eta(x)}{\sum_x \eta(x)} \phi(x) \\
+      & = (\sum_x \eta(x)) \sum_x \mu(x)\phi(x) \\
+      & \propto \sum_x \mu(x) \nabla\pi(a|s)q(s,a) 
+  \end{align*}
+\end{proof}
 
 
 Talk about value iteration and policy iteration;
@@ -226,10 +318,7 @@ approximator;
 
 then talk about parametrized policy and policy gradient theorem 
 
-
-
 \textbf{REINFOCE}
-
 
 
 % \biblio
