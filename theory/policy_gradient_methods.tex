@@ -9,15 +9,19 @@
 
 RL is big and rich, its history traces back to Pavlov's study on the 
 psychology of animal learning (conditional response) back in 1902.
-The expository article History of Reinforcement Learning (http://incompleteideas.net/book/first/ebook/node12.html) is a good resource to learn
+The expository article History of Reinforcement Learning 
+(http://incompleteideas.net/book/first/ebook/node12.html) 
+is a good resource to learn
 how RL evolved in the last 100 years.
+
+Main reference for this note is the unbeatable classic 
+(http://incompleteideas.net/book/the-book.html)
 
 Policy Gradient Methods is a class of RL algorithms that directly 
 learns a policy from interaction with the environment. In contrast,
 to this, one can also learn a state value estimate of the current
 state of the env and the candidate actions. This class of algorithms
 is called Q-learning. 
-
 
 \textbf{Review about setups in RL}
 The objective of RL is to find a policy $\pi$ that gets the highest 
@@ -79,7 +83,7 @@ A few ways to think about the discount factor
         \]
 \end{itemize}
 
-Let $\mathscr{S}$ be the state space, and $\mathscr{A}$ the action space.
+Let $\mathbb{S}$ be the state space, and $\mathbb{A}$ the action space.
 A \emph{deterministic policy} is a mapping 
 \[
     \pi: \mathbb{S} \rightarrow \mathbb{A}
@@ -88,7 +92,7 @@ and a \emph{stochastic} policy is a mapping
 \[
     \pi: \mathbb{S} \rightarrow Dist( \mathbb{A} )
 \]
-where $Dist(\mathscr{ A })$ denote the space of probability distributions
+where $Dist(\mathbb{ A })$ denote the space of probability distributions
 over the action spaces.
 
 Both deterministc env and determinsitc policy are special cases of their
@@ -106,7 +110,7 @@ So with the model of the env, we can write down the expected total
 reward if we follow the policy $\pi$. Assume the initial state is $s_0$
 \begin{align*}
     v_{\pi}(s_0) & \definedas \E_{\tau \sim \pi}[G_0 | S_0 = s_0] \\
-        & \E_{\tau \sim \pi}(R_1 + \gamma v_{\pi}(s_1) 
+        & \E_{\tau \sim \pi}[R_1 + \gamma v_{\pi}(s_1)]
 \end{align*}
 $s_1$ denotes the next state of the env.
 $\tau$ denotes a trajectory sampled from the policy $\pi$.
@@ -174,6 +178,64 @@ You can get a good policy by iterating one-step a time.
 \section{Value Iteration with Dynamic Programming}
 How do we evaluate a policy $\pi$, i.e. 
 How do we compute $v_{\pi}(s_0)$,i.e. line 3 of the GPI? 
+Suppose the environment's model and the policy is completely known,
+then
+\begin{align}
+    v_{\pi}(s_0) & = \E_{\pi}[G_t | S_t=s_0] \\
+                 & = \E_{\pi}[R_{t+1} + \gamma v_{\pi}(S_1)] \\
+        & = \sum_a\pi(a|s)\sum_{s_1, r_1}p(s_1, r_1|s,a)[r_1 + \gamma 
+        v_{\pi}(s_1)]
+\end{align}
+If the MDP is finte with $n$ states, then the above relations give s 
+system of linear equations in variables $v_{\pi}(s_0),\cdots,v_{\pi}(s_{n-1})$. 
+So solving finite MDP is nothing but solving a linear system. 
+
+For small MDP, you can just invoke some middle school math to find a exact solution 
+to the MDP. Most interesting problems are big or even infinite, so Gaussian 
+elimination does not really apply. We need a \emph{approximate algorithm} to solve
+the MDP. 
+
+\textbf{Value Iteration} Suppose the agent is able to act infinitely many 
+steps in the MDP (infinite episodic task). Then you can iteratively solve
+the MDP by letting the agent act for 0 step, 1 step, 2 steps, $\cdots$, $n$ steps, 
+$\cdots$. 
+Let $v_k(s)$ denote the approximate solution for $v_{\pi}(s)$ if you let the agent
+to act $k$ steps. Then 
+\[
+    v_0(s) = 0, \forall s \in \mathbb{S}
+\]
+and 
+\[
+    v_{k+1}(s) = \sum_{a}\pi(a|s)\sum_{s^{\prime},r^{\prime}}
+        p(s^{\prime},r^{\prime})[r^{\prime} + \gamma v_k(s^{\prime})]
+\]
+i.e. you act $k+1$ steps by acting 1 step then $k$ steps (almost tataulogy).
+
+\begin{algorithm}[H]
+    \caption{Value Iteration}
+\end{algorithm}
+
+\begin{algorithmic}[1]
+    \STATE Input: a policy $\pi$ to be evaluated, a small residue tolerance
+    $\epsilon > 0$ determinig the accuracy of the policy evaluation, 
+    $v(s) = 0 \forall s \in \mathbb{S}$
+    \REPEAT 
+    \STATE $\Delta \leftarrow 0$
+    \FOR {each $s \in \mathbb{S}$}
+    \STATE $v \leftarrow v(s)$
+    \STATE 
+    \[ 
+        v(s) \leftarrow \sum_a\pi(a|s)\sum_{s^{\prime},r}
+        p(s^{\prime},r |s,a) [r + \gamma v(s^{\prime}]
+    \]
+    \STATE $\Delta \leftarrow \max(\Delta , |v - v(s)|)$
+    \ENDFOR
+    \UNTIL {$\Delta \le \epsilon$}
+\end{algorithmic}
+
+
+
+
 
 
 \section{Function Approximation and Policy Gradient Methods}
@@ -311,21 +373,5 @@ by the value of action $a$ and relative importance of the state $s$}
       & \propto \sum_x \mu(x) \nabla\pi(a|s)q(s,a) 
   \end{align*}
 \end{proof}
-
-
-Talk about value iteration and policy iteration;
-Talk about how tabular methods can be used to achieve
-value/policy iteration;
-Talk about why tabular method is not sufficient and function 
-approximator;
-
-then talk about parametrized policy and policy gradient theorem 
-
-\textbf{REINFOCE}
-
-
-% \biblio
-History of Reinforcement Learning
-http://incompleteideas.net/book/first/ebook/node12.html
 \end{document}
 
