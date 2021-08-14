@@ -1,0 +1,901 @@
+This is pdfTeX, Version 3.141592653-2.6-1.40.22 (TeX Live 2021) (preloaded format=pdflatex 2021.5.29)  12 AUG 2021 23:12
+entering extended mode
+ restricted \write18 enabled.
+ %&-line parsing enabled.
+**policy_gradient_methods.tex
+(./policy_gradient_methods.tex
+LaTeX2e <2020-10-01> patch level 4
+L3 programming layer <2021-05-27>
+(/Users/hongshanli/Library/2021/texmf-dist/tex/latex/base/article.cls
+Document Class: article 2020/04/10 v1.4m Standard LaTeX document class
+(/Users/hongshanli/Library/2021/texmf-dist/tex/latex/base/size10.clo
+File: size10.clo 2020/04/10 v1.4m Standard LaTeX file (size option)
+)
+\c@part=\count181
+\c@section=\count182
+\c@subsection=\count183
+\c@subsubsection=\count184
+\c@paragraph=\count185
+\c@subparagraph=\count186
+\c@figure=\count187
+\c@table=\count188
+\abovecaptionskip=\skip47
+\belowcaptionskip=\skip48
+\bibindent=\dimen138
+)
+(./macro.sty
+(/Users/hongshanli/Library/2021/texmf-dist/tex/latex/l3packages/xparse/xparse.s
+ty (/Users/hongshanli/Library/2021/texmf-dist/tex/latex/l3kernel/expl3.sty
+Package: expl3 2021-05-27 L3 programming layer (loader) 
+
+(/Users/hongshanli/Library/2021/texmf-dist/tex/latex/l3backend/l3backend-pdftex
+.def
+File: l3backend-pdftex.def 2021-05-07 L3 backend support: PDF output (pdfTeX)
+\l__color_backend_stack_int=\count189
+\l__pdf_internal_box=\box47
+))
+(/Users/hongshanli/Library/2021/texmf-dist/tex/latex/l3packages/xparse/xparse-2
+020-10-01.sty
+(/Users/hongshanli/Library/2021/texmf-dist/tex/latex/l3packages/xparse/xparse-g
+eneric.tex)))
+(/Users/hongshanli/Library/2021/texmf-dist/tex/latex/algorithms/algorithmic.sty
+Package: algorithmic 2009/08/24 v0.1 Document Style `algorithmic'
+(/Users/hongshanli/Library/2021/texmf-dist/tex/latex/base/ifthen.sty
+Package: ifthen 2014/09/29 v1.1c Standard LaTeX ifthen package (DPC)
+)
+(/Users/hongshanli/Library/2021/texmf-dist/tex/latex/graphics/keyval.sty
+Package: keyval 2014/10/28 v1.15 key=value parser (DPC)
+\KV@toks@=\toks15
+)
+\c@ALC@unique=\count190
+\c@ALC@line=\count191
+\c@ALC@rem=\count192
+\c@ALC@depth=\count193
+\ALC@tlm=\skip49
+\algorithmicindent=\skip50
+)
+(/Users/hongshanli/Library/2021/texmf-dist/tex/latex/algorithm2e/algorithm2e.st
+y
+Package: algorithm2e 2017/07/18 v5.2 algorithms environments
+\c@AlgoLine=\count194
+\algocf@hangindent=\skip51
+ (/Users/hongshanli/Library/2021/texmf-dist/tex/latex/ifoddpage/ifoddpage.sty
+Package: ifoddpage 2016/04/23 v1.1 Conditionals for odd/even page detection
+\c@checkoddpage=\count195
+) (/Users/hongshanli/Library/2021/texmf-dist/tex/latex/tools/xspace.sty
+Package: xspace 2014/10/28 v1.13 Space after command names (DPC,MH)
+)
+(/Users/hongshanli/Library/2021/texmf-dist/tex/latex/relsize/relsize.sty
+Package: relsize 2013/03/29 ver 4.1
+)
+\skiptotal=\skip52
+\skiplinenumber=\skip53
+\skiprule=\skip54
+\skiphlne=\skip55
+\skiptext=\skip56
+\skiplength=\skip57
+\algomargin=\skip58
+\skipalgocfslide=\skip59
+\algowidth=\dimen139
+\inoutsize=\dimen140
+\inoutindent=\dimen141
+\interspacetitleruled=\dimen142
+\interspacealgoruled=\dimen143
+\interspacetitleboxruled=\dimen144
+\algocf@ruledwidth=\skip60
+\algocf@inoutbox=\box48
+\algocf@inputbox=\box49
+\AlCapSkip=\skip61
+\AlCapHSkip=\skip62
+\algoskipindent=\skip63
+\algocf@nlbox=\box50
+\algocf@hangingbox=\box51
+\algocf@untilbox=\box52
+\algocf@skipuntil=\skip64
+\algocf@capbox=\box53
+\algocf@lcaptionbox=\skip65
+\algoheightruledefault=\skip66
+\algoheightrule=\skip67
+\algotitleheightruledefault=\skip68
+\algotitleheightrule=\skip69
+\c@algocfline=\count196
+\c@algocfproc=\count197
+\c@algocf=\count198
+\algocf@algoframe=\box54
+\algocf@algobox=\box55
+)
+(/Users/hongshanli/Library/2021/texmf-dist/tex/latex/mathtools/mathtools.sty
+Package: mathtools 2021/04/12 v1.27 mathematical typesetting tools
+
+(/Users/hongshanli/Library/2021/texmf-dist/tex/latex/tools/calc.sty
+Package: calc 2017/05/25 v4.3 Infix arithmetic (KKT,FJ)
+\calc@Acount=\count199
+\calc@Bcount=\count266
+\calc@Adimen=\dimen145
+\calc@Bdimen=\dimen146
+\calc@Askip=\skip70
+\calc@Bskip=\skip71
+LaTeX Info: Redefining \setlength on input line 80.
+LaTeX Info: Redefining \addtolength on input line 81.
+\calc@Ccount=\count267
+\calc@Cskip=\skip72
+)
+(/Users/hongshanli/Library/2021/texmf-dist/tex/latex/mathtools/mhsetup.sty
+Package: mhsetup 2021/03/18 v1.4 programming setup (MH)
+)
+(/Users/hongshanli/Library/2021/texmf-dist/tex/latex/amsmath/amsmath.sty
+Package: amsmath 2020/09/23 v2.17i AMS math features
+\@mathmargin=\skip73
+
+For additional information on amsmath, use the `?' option.
+(/Users/hongshanli/Library/2021/texmf-dist/tex/latex/amsmath/amstext.sty
+Package: amstext 2000/06/29 v2.01 AMS text
+
+(/Users/hongshanli/Library/2021/texmf-dist/tex/latex/amsmath/amsgen.sty
+File: amsgen.sty 1999/11/30 v2.0 generic functions
+\@emptytoks=\toks16
+\ex@=\dimen147
+))
+(/Users/hongshanli/Library/2021/texmf-dist/tex/latex/amsmath/amsbsy.sty
+Package: amsbsy 1999/11/29 v1.2d Bold Symbols
+\pmbraise@=\dimen148
+)
+(/Users/hongshanli/Library/2021/texmf-dist/tex/latex/amsmath/amsopn.sty
+Package: amsopn 2016/03/08 v2.02 operator names
+)
+\inf@bad=\count268
+LaTeX Info: Redefining \frac on input line 234.
+\uproot@=\count269
+\leftroot@=\count270
+LaTeX Info: Redefining \overline on input line 399.
+\classnum@=\count271
+\DOTSCASE@=\count272
+LaTeX Info: Redefining \ldots on input line 496.
+LaTeX Info: Redefining \dots on input line 499.
+LaTeX Info: Redefining \cdots on input line 620.
+\Mathstrutbox@=\box56
+\strutbox@=\box57
+\big@size=\dimen149
+LaTeX Font Info:    Redeclaring font encoding OML on input line 743.
+LaTeX Font Info:    Redeclaring font encoding OMS on input line 744.
+\macc@depth=\count273
+\c@MaxMatrixCols=\count274
+\dotsspace@=\muskip16
+\c@parentequation=\count275
+\dspbrk@lvl=\count276
+\tag@help=\toks17
+\row@=\count277
+\column@=\count278
+\maxfields@=\count279
+\andhelp@=\toks18
+\eqnshift@=\dimen150
+\alignsep@=\dimen151
+\tagshift@=\dimen152
+\tagwidth@=\dimen153
+\totwidth@=\dimen154
+\lineht@=\dimen155
+\@envbody=\toks19
+\multlinegap=\skip74
+\multlinetaggap=\skip75
+\mathdisplay@stack=\toks20
+LaTeX Info: Redefining \[ on input line 2923.
+LaTeX Info: Redefining \] on input line 2924.
+)
+LaTeX Info: Thecontrolsequence`\('isalreadyrobust on input line 130.
+LaTeX Info: Thecontrolsequence`\)'isalreadyrobust on input line 130.
+LaTeX Info: Thecontrolsequence`\['isalreadyrobust on input line 130.
+LaTeX Info: Thecontrolsequence`\]'isalreadyrobust on input line 130.
+\g_MT_multlinerow_int=\count280
+\l_MT_multwidth_dim=\dimen156
+\origjot=\skip76
+\l_MT_shortvdotswithinadjustabove_dim=\dimen157
+\l_MT_shortvdotswithinadjustbelow_dim=\dimen158
+\l_MT_above_intertext_sep=\dimen159
+\l_MT_below_intertext_sep=\dimen160
+\l_MT_above_shortintertext_sep=\dimen161
+\l_MT_below_shortintertext_sep=\dimen162
+\xmathstrut@box=\box58
+\xmathstrut@dim=\dimen163
+)
+(/Users/hongshanli/Library/2021/texmf-dist/tex/latex/amsmath/amscd.sty
+Package: amscd 2017/04/14 v2.1 AMS Commutative Diagrams
+\athelp@=\toks21
+\minaw@=\dimen164
+\bigaw@=\dimen165
+\minCDarrowwidth=\dimen166
+)
+(/Users/hongshanli/Library/2021/texmf-dist/tex/latex/amsfonts/amsfonts.sty
+Package: amsfonts 2013/01/14 v3.01 Basic AMSFonts support
+\symAMSa=\mathgroup4
+\symAMSb=\mathgroup5
+LaTeX Font Info:    Redeclaring math symbol \hbar on input line 98.
+LaTeX Font Info:    Overwriting math alphabet `\mathfrak' in version `bold'
+(Font)                  U/euf/m/n --> U/euf/b/n on input line 106.
+)
+(/Users/hongshanli/Library/2021/texmf-dist/tex/latex/jknapltx/mathrsfs.sty
+Package: mathrsfs 1996/01/01 Math RSFS package v1.0 (jk)
+\symrsfs=\mathgroup6
+)
+(/Users/hongshanli/Library/2021/texmf-dist/tex/latex/amsfonts/amssymb.sty
+Package: amssymb 2013/01/14 v3.01 AMS font symbols
+)
+(/Users/hongshanli/Library/2021/texmf-dist/tex/latex/hyperref/nameref.sty
+Package: nameref 2021-04-02 v2.47 Cross-referencing by name of section
+
+(/Users/hongshanli/Library/2021/texmf-dist/tex/latex/refcount/refcount.sty
+Package: refcount 2019/12/15 v3.6 Data extraction from label references (HO)
+
+(/Users/hongshanli/Library/2021/texmf-dist/tex/generic/ltxcmds/ltxcmds.sty
+Package: ltxcmds 2020-05-10 v1.25 LaTeX kernel commands for general use (HO)
+)
+(/Users/hongshanli/Library/2021/texmf-dist/tex/generic/infwarerr/infwarerr.sty
+Package: infwarerr 2019/12/03 v1.5 Providing info/warning/error messages (HO)
+))
+(/Users/hongshanli/Library/2021/texmf-dist/tex/generic/gettitlestring/gettitles
+tring.sty
+Package: gettitlestring 2019/12/15 v1.6 Cleanup title references (HO)
+
+(/Users/hongshanli/Library/2021/texmf-dist/tex/latex/kvoptions/kvoptions.sty
+Package: kvoptions 2020-10-07 v3.14 Key value format for package options (HO)
+
+(/Users/hongshanli/Library/2021/texmf-dist/tex/generic/kvsetkeys/kvsetkeys.sty
+Package: kvsetkeys 2019/12/15 v1.18 Key value parser (HO)
+)))
+\c@section@level=\count281
+LaTeX Info: Redefining \ref on input line 356.
+LaTeX Info: Redefining \pageref on input line 356.
+) (/Users/hongshanli/Library/2021/texmf-dist/tex/latex/hyperref/hyperref.sty
+Package: hyperref 2021-02-27 v7.00k Hypertext links for LaTeX
+
+(/Users/hongshanli/Library/2021/texmf-dist/tex/generic/iftex/iftex.sty
+Package: iftex 2020/03/06 v1.0d TeX engine tests
+)
+(/Users/hongshanli/Library/2021/texmf-dist/tex/generic/pdftexcmds/pdftexcmds.st
+y
+Package: pdftexcmds 2020-06-27 v0.33 Utility functions of pdfTeX for LuaTeX (HO
+)
+Package pdftexcmds Info: \pdf@primitive is available.
+Package pdftexcmds Info: \pdf@ifprimitive is available.
+Package pdftexcmds Info: \pdfdraftmode found.
+)
+(/Users/hongshanli/Library/2021/texmf-dist/tex/generic/kvdefinekeys/kvdefinekey
+s.sty
+Package: kvdefinekeys 2019-12-19 v1.6 Define keys (HO)
+)
+(/Users/hongshanli/Library/2021/texmf-dist/tex/generic/pdfescape/pdfescape.sty
+Package: pdfescape 2019/12/09 v1.15 Implements pdfTeX's escape features (HO)
+) (/Users/hongshanli/Library/2021/texmf-dist/tex/latex/hycolor/hycolor.sty
+Package: hycolor 2020-01-27 v1.10 Color options for hyperref/bookmark (HO)
+)
+(/Users/hongshanli/Library/2021/texmf-dist/tex/latex/letltxmacro/letltxmacro.st
+y
+Package: letltxmacro 2019/12/03 v1.6 Let assignment for LaTeX macros (HO)
+) (/Users/hongshanli/Library/2021/texmf-dist/tex/latex/auxhook/auxhook.sty
+Package: auxhook 2019-12-17 v1.6 Hooks for auxiliary files (HO)
+)
+\@linkdim=\dimen167
+\Hy@linkcounter=\count282
+\Hy@pagecounter=\count283
+
+(/Users/hongshanli/Library/2021/texmf-dist/tex/latex/hyperref/pd1enc.def
+File: pd1enc.def 2021-02-27 v7.00k Hyperref: PDFDocEncoding definition (HO)
+Now handling font encoding PD1 ...
+... no UTF-8 mapping file for font encoding PD1
+)
+(/Users/hongshanli/Library/2021/texmf-dist/tex/latex/hyperref/hyperref-langpatc
+hes.def
+File: hyperref-langpatches.def 2021-02-27 v7.00k Hyperref: patches for babel la
+nguages
+)
+(/Users/hongshanli/Library/2021/texmf-dist/tex/generic/intcalc/intcalc.sty
+Package: intcalc 2019/12/15 v1.3 Expandable calculations with integers (HO)
+)
+(/Users/hongshanli/Library/2021/texmf-dist/tex/generic/etexcmds/etexcmds.sty
+Package: etexcmds 2019/12/15 v1.7 Avoid name clashes with e-TeX commands (HO)
+)
+\Hy@SavedSpaceFactor=\count284
+
+(/Users/hongshanli/Library/2021/texmf-dist/tex/latex/hyperref/puenc.def
+File: puenc.def 2021-02-27 v7.00k Hyperref: PDF Unicode definition (HO)
+Now handling font encoding PU ...
+... no UTF-8 mapping file for font encoding PU
+)
+Package hyperref Info: Hyper figures OFF on input line 4192.
+Package hyperref Info: Link nesting OFF on input line 4197.
+Package hyperref Info: Hyper index ON on input line 4200.
+Package hyperref Info: Plain pages OFF on input line 4207.
+Package hyperref Info: Backreferencing OFF on input line 4212.
+Package hyperref Info: Implicit mode ON; LaTeX internals redefined.
+Package hyperref Info: Bookmarks ON on input line 4445.
+\c@Hy@tempcnt=\count285
+
+(/Users/hongshanli/Library/2021/texmf-dist/tex/latex/url/url.sty
+\Urlmuskip=\muskip17
+Package: url 2013/09/16  ver 3.4  Verb mode for urls, etc.
+)
+LaTeX Info: Redefining \url on input line 4804.
+\XeTeXLinkMargin=\dimen168
+
+(/Users/hongshanli/Library/2021/texmf-dist/tex/generic/bitset/bitset.sty
+Package: bitset 2019/12/09 v1.3 Handle bit-vector datatype (HO)
+
+(/Users/hongshanli/Library/2021/texmf-dist/tex/generic/bigintcalc/bigintcalc.st
+y
+Package: bigintcalc 2019/12/15 v1.5 Expandable calculations on big integers (HO
+)
+))
+\Fld@menulength=\count286
+\Field@Width=\dimen169
+\Fld@charsize=\dimen170
+Package hyperref Info: Hyper figures OFF on input line 6075.
+Package hyperref Info: Link nesting OFF on input line 6080.
+Package hyperref Info: Hyper index ON on input line 6083.
+Package hyperref Info: backreferencing OFF on input line 6090.
+Package hyperref Info: Link coloring OFF on input line 6095.
+Package hyperref Info: Link coloring with OCG OFF on input line 6100.
+Package hyperref Info: PDF/A mode OFF on input line 6105.
+LaTeX Info: Redefining \ref on input line 6145.
+LaTeX Info: Redefining \pageref on input line 6149.
+ (/Users/hongshanli/Library/2021/texmf-dist/tex/latex/base/atbegshi-ltx.sty
+Package: atbegshi-ltx 2020/08/17 v1.0a Emulation of the original atbegshi packa
+ge
+with kernel methods
+)
+\Hy@abspage=\count287
+\c@Item=\count288
+\c@Hfootnote=\count289
+)
+Package hyperref Info: Driver (autodetected): hpdftex.
+ (/Users/hongshanli/Library/2021/texmf-dist/tex/latex/hyperref/hpdftex.def
+File: hpdftex.def 2021-02-27 v7.00k Hyperref driver for pdfTeX
+
+(/Users/hongshanli/Library/2021/texmf-dist/tex/latex/base/atveryend-ltx.sty
+Package: atveryend-ltx 2020/08/19 v1.0a Emulation of the original atvery packag
+e
+with kernel methods
+)
+\Fld@listcount=\count290
+\c@bookmark@seq@number=\count291
+
+(/Users/hongshanli/Library/2021/texmf-dist/tex/latex/rerunfilecheck/rerunfilech
+eck.sty
+Package: rerunfilecheck 2019/12/05 v1.9 Rerun checks for auxiliary files (HO)
+
+(/Users/hongshanli/Library/2021/texmf-dist/tex/generic/uniquecounter/uniquecoun
+ter.sty
+Package: uniquecounter 2019/12/15 v1.4 Provide unlimited unique counter (HO)
+)
+Package uniquecounter Info: New unique counter `rerunfilecheck' on input line 2
+86.
+)
+\Hy@SectionHShift=\skip77
+)
+(/Users/hongshanli/Library/2021/texmf-dist/tex/latex/tools/verbatim.sty
+Package: verbatim 2020-07-07 v1.5u LaTeX2e package for verbatim enhancements
+\every@verbatim=\toks22
+\verbatim@line=\toks23
+\verbatim@in@stream=\read2
+)
+(/Users/hongshanli/Library/2021/texmf-dist/tex/latex/graphics/color.sty
+Package: color 2020/02/24 v1.2b Standard LaTeX Color (DPC)
+
+(/Users/hongshanli/Library/2021/texmf-dist/tex/latex/graphics-cfg/color.cfg
+File: color.cfg 2016/01/02 v1.6 sample color configuration
+)
+Package color Info: Driver file: pdftex.def on input line 147.
+
+(/Users/hongshanli/Library/2021/texmf-dist/tex/latex/graphics-def/pdftex.def
+File: pdftex.def 2020/10/05 v1.2a Graphics/color driver for pdftex
+))
+(/Users/hongshanli/Library/2021/texmf-dist/tex/latex/tikz-cd/tikz-cd.sty
+Package: tikz-cd 2021/05/04 v1.0 Commutative diagrams with TikZ
+
+(/Users/hongshanli/Library/2021/texmf-dist/tex/latex/pgf/frontendlayer/tikz.sty
+(/Users/hongshanli/Library/2021/texmf-dist/tex/latex/pgf/basiclayer/pgf.sty
+(/Users/hongshanli/Library/2021/texmf-dist/tex/latex/pgf/utilities/pgfrcs.sty
+(/Users/hongshanli/Library/2021/texmf-dist/tex/generic/pgf/utilities/pgfutil-co
+mmon.tex
+\pgfutil@everybye=\toks24
+\pgfutil@tempdima=\dimen171
+\pgfutil@tempdimb=\dimen172
+
+(/Users/hongshanli/Library/2021/texmf-dist/tex/generic/pgf/utilities/pgfutil-co
+mmon-lists.tex))
+(/Users/hongshanli/Library/2021/texmf-dist/tex/generic/pgf/utilities/pgfutil-la
+tex.def
+\pgfutil@abb=\box59
+)
+(/Users/hongshanli/Library/2021/texmf-dist/tex/generic/pgf/utilities/pgfrcs.cod
+e.tex
+(/Users/hongshanli/Library/2021/texmf-dist/tex/generic/pgf/pgf.revision.tex)
+Package: pgfrcs 2021/05/15 v3.1.9a (3.1.9a)
+))
+Package: pgf 2021/05/15 v3.1.9a (3.1.9a)
+
+(/Users/hongshanli/Library/2021/texmf-dist/tex/latex/pgf/basiclayer/pgfcore.sty
+(/Users/hongshanli/Library/2021/texmf-dist/tex/latex/graphics/graphicx.sty
+Package: graphicx 2020/09/09 v1.2b Enhanced LaTeX Graphics (DPC,SPQR)
+
+(/Users/hongshanli/Library/2021/texmf-dist/tex/latex/graphics/graphics.sty
+Package: graphics 2020/08/30 v1.4c Standard LaTeX Graphics (DPC,SPQR)
+
+(/Users/hongshanli/Library/2021/texmf-dist/tex/latex/graphics/trig.sty
+Package: trig 2016/01/03 v1.10 sin cos tan (DPC)
+)
+(/Users/hongshanli/Library/2021/texmf-dist/tex/latex/graphics-cfg/graphics.cfg
+File: graphics.cfg 2016/06/04 v1.11 sample graphics configuration
+)
+Package graphics Info: Driver file: pdftex.def on input line 105.
+)
+\Gin@req@height=\dimen173
+\Gin@req@width=\dimen174
+)
+(/Users/hongshanli/Library/2021/texmf-dist/tex/latex/pgf/systemlayer/pgfsys.sty
+
+(/Users/hongshanli/Library/2021/texmf-dist/tex/generic/pgf/systemlayer/pgfsys.c
+ode.tex
+Package: pgfsys 2021/05/15 v3.1.9a (3.1.9a)
+
+(/Users/hongshanli/Library/2021/texmf-dist/tex/generic/pgf/utilities/pgfkeys.co
+de.tex
+\pgfkeys@pathtoks=\toks25
+\pgfkeys@temptoks=\toks26
+
+(/Users/hongshanli/Library/2021/texmf-dist/tex/generic/pgf/utilities/pgfkeysfil
+tered.code.tex
+\pgfkeys@tmptoks=\toks27
+))
+\pgf@x=\dimen175
+\pgf@y=\dimen176
+\pgf@xa=\dimen177
+\pgf@ya=\dimen178
+\pgf@xb=\dimen179
+\pgf@yb=\dimen180
+\pgf@xc=\dimen181
+\pgf@yc=\dimen182
+\pgf@xd=\dimen183
+\pgf@yd=\dimen184
+\w@pgf@writea=\write3
+\r@pgf@reada=\read3
+\c@pgf@counta=\count292
+\c@pgf@countb=\count293
+\c@pgf@countc=\count294
+\c@pgf@countd=\count295
+\t@pgf@toka=\toks28
+\t@pgf@tokb=\toks29
+\t@pgf@tokc=\toks30
+\pgf@sys@id@count=\count296
+
+(/Users/hongshanli/Library/2021/texmf-dist/tex/generic/pgf/systemlayer/pgf.cfg
+File: pgf.cfg 2021/05/15 v3.1.9a (3.1.9a)
+)
+Driver file for pgf: pgfsys-pdftex.def
+
+(/Users/hongshanli/Library/2021/texmf-dist/tex/generic/pgf/systemlayer/pgfsys-p
+dftex.def
+File: pgfsys-pdftex.def 2021/05/15 v3.1.9a (3.1.9a)
+
+(/Users/hongshanli/Library/2021/texmf-dist/tex/generic/pgf/systemlayer/pgfsys-c
+ommon-pdf.def
+File: pgfsys-common-pdf.def 2021/05/15 v3.1.9a (3.1.9a)
+)))
+(/Users/hongshanli/Library/2021/texmf-dist/tex/generic/pgf/systemlayer/pgfsysso
+ftpath.code.tex
+File: pgfsyssoftpath.code.tex 2021/05/15 v3.1.9a (3.1.9a)
+\pgfsyssoftpath@smallbuffer@items=\count297
+\pgfsyssoftpath@bigbuffer@items=\count298
+)
+(/Users/hongshanli/Library/2021/texmf-dist/tex/generic/pgf/systemlayer/pgfsyspr
+otocol.code.tex
+File: pgfsysprotocol.code.tex 2021/05/15 v3.1.9a (3.1.9a)
+))
+(/Users/hongshanli/Library/2021/texmf-dist/tex/latex/xcolor/xcolor.sty
+Package: xcolor 2016/05/11 v2.12 LaTeX color extensions (UK)
+
+(/Users/hongshanli/Library/2021/texmf-dist/tex/latex/graphics-cfg/color.cfg
+File: color.cfg 2016/01/02 v1.6 sample color configuration
+)
+Package xcolor Info: Driver file: pdftex.def on input line 225.
+LaTeX Info: Redefining \color on input line 709.
+Package xcolor Info: Model `cmy' substituted by `cmy0' on input line 1348.
+Package xcolor Info: Model `hsb' substituted by `rgb' on input line 1352.
+Package xcolor Info: Model `RGB' extended on input line 1364.
+Package xcolor Info: Model `HTML' substituted by `rgb' on input line 1366.
+Package xcolor Info: Model `Hsb' substituted by `hsb' on input line 1367.
+Package xcolor Info: Model `tHsb' substituted by `hsb' on input line 1368.
+Package xcolor Info: Model `HSB' substituted by `hsb' on input line 1369.
+Package xcolor Info: Model `Gray' substituted by `gray' on input line 1370.
+Package xcolor Info: Model `wave' substituted by `hsb' on input line 1371.
+)
+(/Users/hongshanli/Library/2021/texmf-dist/tex/generic/pgf/basiclayer/pgfcore.c
+ode.tex
+Package: pgfcore 2021/05/15 v3.1.9a (3.1.9a)
+
+(/Users/hongshanli/Library/2021/texmf-dist/tex/generic/pgf/math/pgfmath.code.te
+x
+(/Users/hongshanli/Library/2021/texmf-dist/tex/generic/pgf/math/pgfmathcalc.cod
+e.tex
+(/Users/hongshanli/Library/2021/texmf-dist/tex/generic/pgf/math/pgfmathutil.cod
+e.tex)
+(/Users/hongshanli/Library/2021/texmf-dist/tex/generic/pgf/math/pgfmathparser.c
+ode.tex
+\pgfmath@dimen=\dimen185
+\pgfmath@count=\count299
+\pgfmath@box=\box60
+\pgfmath@toks=\toks31
+\pgfmath@stack@operand=\toks32
+\pgfmath@stack@operation=\toks33
+)
+(/Users/hongshanli/Library/2021/texmf-dist/tex/generic/pgf/math/pgfmathfunction
+s.code.tex
+(/Users/hongshanli/Library/2021/texmf-dist/tex/generic/pgf/math/pgfmathfunction
+s.basic.code.tex)
+(/Users/hongshanli/Library/2021/texmf-dist/tex/generic/pgf/math/pgfmathfunction
+s.trigonometric.code.tex)
+(/Users/hongshanli/Library/2021/texmf-dist/tex/generic/pgf/math/pgfmathfunction
+s.random.code.tex)
+(/Users/hongshanli/Library/2021/texmf-dist/tex/generic/pgf/math/pgfmathfunction
+s.comparison.code.tex)
+(/Users/hongshanli/Library/2021/texmf-dist/tex/generic/pgf/math/pgfmathfunction
+s.base.code.tex)
+(/Users/hongshanli/Library/2021/texmf-dist/tex/generic/pgf/math/pgfmathfunction
+s.round.code.tex)
+(/Users/hongshanli/Library/2021/texmf-dist/tex/generic/pgf/math/pgfmathfunction
+s.misc.code.tex)
+(/Users/hongshanli/Library/2021/texmf-dist/tex/generic/pgf/math/pgfmathfunction
+s.integerarithmetics.code.tex)))
+(/Users/hongshanli/Library/2021/texmf-dist/tex/generic/pgf/math/pgfmathfloat.co
+de.tex
+\c@pgfmathroundto@lastzeros=\count300
+))
+(/Users/hongshanli/Library/2021/texmf-dist/tex/generic/pgf/math/pgfint.code.tex
+)
+(/Users/hongshanli/Library/2021/texmf-dist/tex/generic/pgf/basiclayer/pgfcorepo
+ints.code.tex
+File: pgfcorepoints.code.tex 2021/05/15 v3.1.9a (3.1.9a)
+\pgf@picminx=\dimen186
+\pgf@picmaxx=\dimen187
+\pgf@picminy=\dimen188
+\pgf@picmaxy=\dimen189
+\pgf@pathminx=\dimen190
+\pgf@pathmaxx=\dimen191
+\pgf@pathminy=\dimen192
+\pgf@pathmaxy=\dimen193
+\pgf@xx=\dimen194
+\pgf@xy=\dimen195
+\pgf@yx=\dimen196
+\pgf@yy=\dimen197
+\pgf@zx=\dimen198
+\pgf@zy=\dimen199
+)
+(/Users/hongshanli/Library/2021/texmf-dist/tex/generic/pgf/basiclayer/pgfcorepa
+thconstruct.code.tex
+File: pgfcorepathconstruct.code.tex 2021/05/15 v3.1.9a (3.1.9a)
+\pgf@path@lastx=\dimen256
+\pgf@path@lasty=\dimen257
+)
+(/Users/hongshanli/Library/2021/texmf-dist/tex/generic/pgf/basiclayer/pgfcorepa
+thusage.code.tex
+File: pgfcorepathusage.code.tex 2021/05/15 v3.1.9a (3.1.9a)
+\pgf@shorten@end@additional=\dimen258
+\pgf@shorten@start@additional=\dimen259
+)
+(/Users/hongshanli/Library/2021/texmf-dist/tex/generic/pgf/basiclayer/pgfcoresc
+opes.code.tex
+File: pgfcorescopes.code.tex 2021/05/15 v3.1.9a (3.1.9a)
+\pgfpic=\box61
+\pgf@hbox=\box62
+\pgf@layerbox@main=\box63
+\pgf@picture@serial@count=\count301
+)
+(/Users/hongshanli/Library/2021/texmf-dist/tex/generic/pgf/basiclayer/pgfcoregr
+aphicstate.code.tex
+File: pgfcoregraphicstate.code.tex 2021/05/15 v3.1.9a (3.1.9a)
+\pgflinewidth=\dimen260
+)
+(/Users/hongshanli/Library/2021/texmf-dist/tex/generic/pgf/basiclayer/pgfcoretr
+ansformations.code.tex
+File: pgfcoretransformations.code.tex 2021/05/15 v3.1.9a (3.1.9a)
+\pgf@pt@x=\dimen261
+\pgf@pt@y=\dimen262
+\pgf@pt@temp=\dimen263
+)
+(/Users/hongshanli/Library/2021/texmf-dist/tex/generic/pgf/basiclayer/pgfcorequ
+ick.code.tex
+File: pgfcorequick.code.tex 2021/05/15 v3.1.9a (3.1.9a)
+)
+(/Users/hongshanli/Library/2021/texmf-dist/tex/generic/pgf/basiclayer/pgfcoreob
+jects.code.tex
+File: pgfcoreobjects.code.tex 2021/05/15 v3.1.9a (3.1.9a)
+)
+(/Users/hongshanli/Library/2021/texmf-dist/tex/generic/pgf/basiclayer/pgfcorepa
+thprocessing.code.tex
+File: pgfcorepathprocessing.code.tex 2021/05/15 v3.1.9a (3.1.9a)
+)
+(/Users/hongshanli/Library/2021/texmf-dist/tex/generic/pgf/basiclayer/pgfcorear
+rows.code.tex
+File: pgfcorearrows.code.tex 2021/05/15 v3.1.9a (3.1.9a)
+\pgfarrowsep=\dimen264
+)
+(/Users/hongshanli/Library/2021/texmf-dist/tex/generic/pgf/basiclayer/pgfcoresh
+ade.code.tex
+File: pgfcoreshade.code.tex 2021/05/15 v3.1.9a (3.1.9a)
+\pgf@max=\dimen265
+\pgf@sys@shading@range@num=\count302
+\pgf@shadingcount=\count303
+)
+(/Users/hongshanli/Library/2021/texmf-dist/tex/generic/pgf/basiclayer/pgfcoreim
+age.code.tex
+File: pgfcoreimage.code.tex 2021/05/15 v3.1.9a (3.1.9a)
+
+(/Users/hongshanli/Library/2021/texmf-dist/tex/generic/pgf/basiclayer/pgfcoreex
+ternal.code.tex
+File: pgfcoreexternal.code.tex 2021/05/15 v3.1.9a (3.1.9a)
+\pgfexternal@startupbox=\box64
+))
+(/Users/hongshanli/Library/2021/texmf-dist/tex/generic/pgf/basiclayer/pgfcorela
+yers.code.tex
+File: pgfcorelayers.code.tex 2021/05/15 v3.1.9a (3.1.9a)
+)
+(/Users/hongshanli/Library/2021/texmf-dist/tex/generic/pgf/basiclayer/pgfcoretr
+ansparency.code.tex
+File: pgfcoretransparency.code.tex 2021/05/15 v3.1.9a (3.1.9a)
+)
+(/Users/hongshanli/Library/2021/texmf-dist/tex/generic/pgf/basiclayer/pgfcorepa
+tterns.code.tex
+File: pgfcorepatterns.code.tex 2021/05/15 v3.1.9a (3.1.9a)
+)
+(/Users/hongshanli/Library/2021/texmf-dist/tex/generic/pgf/basiclayer/pgfcorerd
+f.code.tex
+File: pgfcorerdf.code.tex 2021/05/15 v3.1.9a (3.1.9a)
+)))
+(/Users/hongshanli/Library/2021/texmf-dist/tex/generic/pgf/modules/pgfmodulesha
+pes.code.tex
+File: pgfmoduleshapes.code.tex 2021/05/15 v3.1.9a (3.1.9a)
+\pgfnodeparttextbox=\box65
+)
+(/Users/hongshanli/Library/2021/texmf-dist/tex/generic/pgf/modules/pgfmoduleplo
+t.code.tex
+File: pgfmoduleplot.code.tex 2021/05/15 v3.1.9a (3.1.9a)
+)
+(/Users/hongshanli/Library/2021/texmf-dist/tex/latex/pgf/compatibility/pgfcomp-
+version-0-65.sty
+Package: pgfcomp-version-0-65 2021/05/15 v3.1.9a (3.1.9a)
+\pgf@nodesepstart=\dimen266
+\pgf@nodesepend=\dimen267
+)
+(/Users/hongshanli/Library/2021/texmf-dist/tex/latex/pgf/compatibility/pgfcomp-
+version-1-18.sty
+Package: pgfcomp-version-1-18 2021/05/15 v3.1.9a (3.1.9a)
+))
+(/Users/hongshanli/Library/2021/texmf-dist/tex/latex/pgf/utilities/pgffor.sty
+(/Users/hongshanli/Library/2021/texmf-dist/tex/latex/pgf/utilities/pgfkeys.sty
+(/Users/hongshanli/Library/2021/texmf-dist/tex/generic/pgf/utilities/pgfkeys.co
+de.tex))
+(/Users/hongshanli/Library/2021/texmf-dist/tex/latex/pgf/math/pgfmath.sty
+(/Users/hongshanli/Library/2021/texmf-dist/tex/generic/pgf/math/pgfmath.code.te
+x))
+(/Users/hongshanli/Library/2021/texmf-dist/tex/generic/pgf/utilities/pgffor.cod
+e.tex
+Package: pgffor 2021/05/15 v3.1.9a (3.1.9a)
+
+(/Users/hongshanli/Library/2021/texmf-dist/tex/generic/pgf/math/pgfmath.code.te
+x)
+\pgffor@iter=\dimen268
+\pgffor@skip=\dimen269
+\pgffor@stack=\toks34
+\pgffor@toks=\toks35
+))
+(/Users/hongshanli/Library/2021/texmf-dist/tex/generic/pgf/frontendlayer/tikz/t
+ikz.code.tex
+Package: tikz 2021/05/15 v3.1.9a (3.1.9a)
+
+(/Users/hongshanli/Library/2021/texmf-dist/tex/generic/pgf/libraries/pgflibrary
+plothandlers.code.tex
+File: pgflibraryplothandlers.code.tex 2021/05/15 v3.1.9a (3.1.9a)
+\pgf@plot@mark@count=\count304
+\pgfplotmarksize=\dimen270
+)
+\tikz@lastx=\dimen271
+\tikz@lasty=\dimen272
+\tikz@lastxsaved=\dimen273
+\tikz@lastysaved=\dimen274
+\tikz@lastmovetox=\dimen275
+\tikz@lastmovetoy=\dimen276
+\tikzleveldistance=\dimen277
+\tikzsiblingdistance=\dimen278
+\tikz@figbox=\box66
+\tikz@figbox@bg=\box67
+\tikz@tempbox=\box68
+\tikz@tempbox@bg=\box69
+\tikztreelevel=\count305
+\tikznumberofchildren=\count306
+\tikznumberofcurrentchild=\count307
+\tikz@fig@count=\count308
+
+(/Users/hongshanli/Library/2021/texmf-dist/tex/generic/pgf/modules/pgfmodulemat
+rix.code.tex
+File: pgfmodulematrix.code.tex 2021/05/15 v3.1.9a (3.1.9a)
+\pgfmatrixcurrentrow=\count309
+\pgfmatrixcurrentcolumn=\count310
+\pgf@matrix@numberofcolumns=\count311
+)
+\tikz@expandcount=\count312
+
+(/Users/hongshanli/Library/2021/texmf-dist/tex/generic/pgf/frontendlayer/tikz/l
+ibraries/tikzlibrarytopaths.code.tex
+File: tikzlibrarytopaths.code.tex 2021/05/15 v3.1.9a (3.1.9a)
+)))
+(/Users/hongshanli/Library/2021/texmf-dist/tex/generic/tikz-cd/tikzlibrarycd.co
+de.tex
+(/Users/hongshanli/Library/2021/texmf-dist/tex/generic/pgf/frontendlayer/tikz/l
+ibraries/tikzlibrarymatrix.code.tex
+File: tikzlibrarymatrix.code.tex 2021/05/15 v3.1.9a (3.1.9a)
+)
+(/Users/hongshanli/Library/2021/texmf-dist/tex/generic/pgf/frontendlayer/tikz/l
+ibraries/tikzlibraryquotes.code.tex
+File: tikzlibraryquotes.code.tex 2021/05/15 v3.1.9a (3.1.9a)
+)
+(/Users/hongshanli/Library/2021/texmf-dist/tex/generic/pgf/libraries/pgflibrary
+arrows.meta.code.tex
+File: pgflibraryarrows.meta.code.tex 2021/05/15 v3.1.9a (3.1.9a)
+\pgfarrowinset=\dimen279
+\pgfarrowlength=\dimen280
+\pgfarrowwidth=\dimen281
+\pgfarrowlinewidth=\dimen282
+)))
+\c@lemma=\count313
+\c@proposition=\count314
+\c@theorem=\count315
+\c@corollary=\count316
+\c@remark=\count317
+\c@example=\count318
+\c@proof=\count319
+) (./policy_gradient_methods.aux)
+\openout1 = `policy_gradient_methods.aux'.
+
+LaTeX Font Info:    Checking defaults for OML/cmm/m/it on input line 7.
+LaTeX Font Info:    ... okay on input line 7.
+LaTeX Font Info:    Checking defaults for OMS/cmsy/m/n on input line 7.
+LaTeX Font Info:    ... okay on input line 7.
+LaTeX Font Info:    Checking defaults for OT1/cmr/m/n on input line 7.
+LaTeX Font Info:    ... okay on input line 7.
+LaTeX Font Info:    Checking defaults for T1/cmr/m/n on input line 7.
+LaTeX Font Info:    ... okay on input line 7.
+LaTeX Font Info:    Checking defaults for TS1/cmr/m/n on input line 7.
+LaTeX Font Info:    ... okay on input line 7.
+LaTeX Font Info:    Checking defaults for OMX/cmex/m/n on input line 7.
+LaTeX Font Info:    ... okay on input line 7.
+LaTeX Font Info:    Checking defaults for U/cmr/m/n on input line 7.
+LaTeX Font Info:    ... okay on input line 7.
+LaTeX Font Info:    Checking defaults for PD1/pdf/m/n on input line 7.
+LaTeX Font Info:    ... okay on input line 7.
+LaTeX Font Info:    Checking defaults for PU/pdf/m/n on input line 7.
+LaTeX Font Info:    ... okay on input line 7.
+Package hyperref Info: Link coloring OFF on input line 7.
+LaTeX Info: Redefining \ref on input line 7.
+LaTeX Info: Redefining \pageref on input line 7.
+LaTeX Info: Redefining \nameref on input line 7.
+
+(./policy_gradient_methods.out) (./policy_gradient_methods.out)
+\@outlinefile=\write4
+\openout4 = `policy_gradient_methods.out'.
+
+
+(/Users/hongshanli/Library/2021/texmf-dist/tex/context/base/mkii/supp-pdf.mkii
+[Loading MPS to PDF converter (version 2006.09.02).]
+\scratchcounter=\count320
+\scratchdimen=\dimen283
+\scratchbox=\box70
+\nofMPsegments=\count321
+\nofMParguments=\count322
+\everyMPshowfont=\toks36
+\MPscratchCnt=\count323
+\MPscratchDim=\dimen284
+\MPnumerator=\count324
+\makeMPintoPDFobject=\count325
+\everyMPtoPDFconversion=\toks37
+)
+(/Users/hongshanli/Library/2021/texmf-dist/tex/latex/epstopdf-pkg/epstopdf-base
+.sty
+Package: epstopdf-base 2020-01-24 v2.11 Base part for package epstopdf
+Package epstopdf-base Info: Redefining graphics rule for `.eps' on input line 4
+85.
+
+(/Users/hongshanli/Library/2021/texmf-dist/tex/latex/latexconfig/epstopdf-sys.c
+fg
+File: epstopdf-sys.cfg 2010/07/13 v1.3 Configuration of (r)epstopdf for TeX Liv
+e
+))
+LaTeX Font Info:    Trying to load font information for U+msa on input line 9.
+ (/Users/hongshanli/Library/2021/texmf-dist/tex/latex/amsfonts/umsa.fd
+File: umsa.fd 2013/01/14 v3.01 AMS symbols A
+)
+LaTeX Font Info:    Trying to load font information for U+msb on input line 9.
+
+(/Users/hongshanli/Library/2021/texmf-dist/tex/latex/amsfonts/umsb.fd
+File: umsb.fd 2013/01/14 v3.01 AMS symbols B
+)
+LaTeX Font Info:    Trying to load font information for U+rsfs on input line 9.
+
+
+(/Users/hongshanli/Library/2021/texmf-dist/tex/latex/jknapltx/ursfs.fd
+File: ursfs.fd 1998/03/24 rsfs font definition file (jk)
+)
+Overfull \hbox (54.66762pt too wide) in paragraph at lines 10--16
+\OT1/cmr/m/n/10 tory of Re-in-force-ment Learn-ing (http://incompleteideas.net/
+book/first/ebook/node12.html)
+ []
+
+
+Overfull \hbox (48.41739pt too wide) in paragraph at lines 17--19
+[]\OT1/cmr/m/n/10 Main ref-er-ence for this note is the un-beat-able clas-sic (
+http://incompleteideas.net/book/the-
+ []
+
+<mdp.png, id=15, 426.09187pt x 144.54pt>
+File: mdp.png Graphic file (type png)
+<use mdp.png>
+Package pdftex.def Info: mdp.png  used on input line 30.
+(pdftex.def)             Requested size: 227.62204pt x 77.21674pt.
+
+Overfull \hbox (39.87943pt too wide) in paragraph at lines 40--43
+[]\OT1/cmr/m/n/10 The agent's ac-tion does not al-ter the tran-si-tion prob-a-b
+il-ity, i.e. $\OML/cmm/m/it/10 P\OT1/cmr/m/n/10 (\OML/cmm/m/it/10 S[]; R[]\OMS/
+cmsy/m/n/10 j\OML/cmm/m/it/10 S[]; A[]\OT1/cmr/m/n/10 )$
+ []
+
+[1
+
+
+
+pdfTeX warning: pdflatex (file pdftex.map): cannot open font map file
+ <./mdp.png>] [2] [3] [4] [5]
+Overfull \hbox (29.49843pt too wide) detected at line 363
+[]
+ []
+
+[6] [7] (./policy_gradient_methods.aux)
+Package rerunfilecheck Info: File `policy_gradient_methods.out' has not changed
+.
+(rerunfilecheck)             Checksum: 70760C8CBE57E72167BB10F9A045F857;563.
+ ) 
+Here is how much of TeX's memory you used:
+ 22129 strings out of 478754
+ 415823 string characters out of 5850683
+ 704667 words of memory out of 5000000
+ 39411 multiletter control sequences out of 15000+600000
+ 413015 words of font info for 66 fonts, out of 8000000 for 9000
+ 1141 hyphenation exceptions out of 8191
+ 131i,11n,136p,489b,484s stack positions out of 5000i,500n,10000p,200000b,80000s
+ </Users/hongshanli/.texlive2021/texmf-var/fonts/pk/ljfour/public/cm/cmbxti10
+.600pk> </Users/hongshanli/.texlive2021/texmf-var/fonts/pk/ljfour/public/amsfon
+ts/cmextra/cmex7.600pk> </Users/hongshanli/.texlive2021/texmf-var/fonts/pk/ljfo
+ur/public/amsfonts/symbols/msbm7.600pk> </Users/hongshanli/.texlive2021/texmf-v
+ar/fonts/pk/ljfour/public/cm/cmmi5.600pk> </Users/hongshanli/.texlive2021/texmf
+-var/fonts/pk/ljfour/public/cm/cmsy5.600pk> </Users/hongshanli/.texlive2021/tex
+mf-var/fonts/pk/ljfour/public/cm/cmr5.600pk> </Users/hongshanli/.texlive2021/te
+xmf-var/fonts/pk/ljfour/public/cm/cmbx12.720pk> </Users/hongshanli/Library/2021
+/texmf-dist/fonts/pk/ljfour/public/cm/dpi600/cmr8.pk> </Users/hongshanli/.texli
+ve2021/texmf-var/fonts/pk/ljfour/public/amsfonts/symbols/msbm10.600pk> </Users/
+hongshanli/Library/2021/texmf-dist/fonts/pk/ljfour/public/cm/dpi600/cmex10.pk> 
+</Users/hongshanli/Library/2021/texmf-dist/fonts/pk/ljfour/public/cm/dpi600/cms
+y7.pk> </Users/hongshanli/Library/2021/texmf-dist/fonts/pk/ljfour/public/cm/dpi
+600/cmsy10.pk> </Users/hongshanli/.texlive2021/texmf-var/fonts/pk/ljfour/jknapp
+en/ec/tcrm1000.600pk> </Users/hongshanli/Library/2021/texmf-dist/fonts/pk/ljfou
+r/public/cm/dpi600/cmr7.pk> </Users/hongshanli/Library/2021/texmf-dist/fonts/pk
+/ljfour/public/cm/dpi600/cmmi7.pk> </Users/hongshanli/Library/2021/texmf-dist/f
+onts/pk/ljfour/public/cm/dpi600/cmti10.pk> </Users/hongshanli/Library/2021/texm
+f-dist/fonts/pk/ljfour/public/cm/dpi600/cmmi10.pk> </Users/hongshanli/Library/2
+021/texmf-dist/fonts/pk/ljfour/public/cm/dpi600/cmbx10.pk> </Users/hongshanli/L
+ibrary/2021/texmf-dist/fonts/pk/ljfour/public/cm/dpi600/cmr10.pk> </Users/hongs
+hanli/Library/2021/texmf-dist/fonts/pk/ljfour/public/cm/dpi600/cmr12.pk> </User
+s/hongshanli/Library/2021/texmf-dist/fonts/pk/ljfour/public/cm/dpi600/cmr17.pk>
+
+Output written on policy_gradient_methods.pdf (7 pages, 150234 bytes).
+PDF statistics:
+ 521 PDF objects out of 1000 (max. 8388607)
+ 158 compressed objects within 2 object streams
+ 36 named destinations out of 1000 (max. 500000)
+ 34 words of extra memory for PDF output out of 10000 (max. 10000000)
+
