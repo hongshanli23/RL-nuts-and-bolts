@@ -1,9 +1,9 @@
 \documentclass{article}
 \usepackage[T1]{fontenc}
 \usepackage[utf8]{inputenc}
-
 \usepackage{macro}
 
+\newcommand{\tpi}{\mathcal{T}^{\pi}}
 \begin{document}
 
 SAC is a off-policy alogrithm. 
@@ -155,6 +155,56 @@ Why in target loss, the next state action needs to be sampled from the
 current policy? The intuition is with better policy, can you make a 
 better estimate of state action value. But it behaves like a on-policy
 algorithm.
+
+\section{relation to generalized policy iteration}
+SAC can be viewed as form of GPI where both policy evaluation and policy
+improvement stages are softened.
+I think \textbf{soft} in this context just means adding entropy to make the
+policy more exploratory. 
+
+Soft policy evaluation can be achieved by repeated application of modified
+Bellman operator $\mathcal{T}^{\pi}$
+\[
+    \mathcal{T}^{\pi} \definedas r(s_t,a_t) + \gamma \E_{s_{t+1} 
+    \sim p}[V_{\pi}(s_{t+1}]
+\]
+
+Soft Bellman backup has the usual convergence property as the ususal 
+Bellman backup
+
+\begin{lemma}
+    Define $Q^{k+1}=\tpi Q^k$, then the sequence converge ot the soft
+    $Q$-value of $\pi$ as $k\rightarrow \infty$
+\end{lemma}
+\[
+    V_{\pi}(s_t) = \E_{a_t\sim\pi}[Q(s_t, a_t) - \log \pi(a_t|s_t)]
+\]
+
+
+In policy improvment step, we 
+
+Information projection to Gaussian familiy 
+
+\[
+    \pi_{new} = \argmin_{\pi^{\prime}} D_{KL}(\pi^{\prime}(\cdot |s_t)
+    || \frac{\exp{Q^{\pi_{old}(s_t, \cdot)}}}{Z^{\pi_{old}}(s_t)})
+\]
+
+\[
+    Z^{\pi_{old}}(s_t)=\int_{a} \exp{Q^{\pi_{old}}(s_t, a)} da
+\]
+
+\begin{lemma}{Soft Policy Improvement}
+    Let $\pi_{old}\in \Pi$ and let $\pi_{new}$ be the optimizer for 
+    soft policy improvement step. Then 
+    \[
+        Q^{\pi_{new}(s_t, a_t)} \geq Q^{\pi_{old}}(s_t, a_t)
+    \]
+    for all $(s_t, a_t) \in S\times A$ with $|A| le \infty$
+\end{lemma}
+
+The proof follows the exact same pattern as in the proof of Policy
+Improvement Theorem. 
 
 
 \begin{algorithm}[H]

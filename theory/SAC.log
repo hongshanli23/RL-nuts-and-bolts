@@ -1,4 +1,4 @@
-This is pdfTeX, Version 3.141592653-2.6-1.40.22 (TeX Live 2021) (preloaded format=pdflatex 2021.5.29)  18 JUL 2021 15:41
+This is pdfTeX, Version 3.141592653-2.6-1.40.22 (TeX Live 2021) (preloaded format=pdflatex 2021.5.29)  14 AUG 2021 17:37
 entering extended mode
  restricted \write18 enabled.
  %&-line parsing enabled.
@@ -758,6 +758,7 @@ File: pgflibraryarrows.meta.code.tex 2021/05/15 v3.1.9a (3.1.9a)
 \c@corollary=\count316
 \c@remark=\count317
 \c@example=\count318
+\c@proof=\count319
 ) (./SAC.aux)
 \openout1 = `SAC.aux'.
 
@@ -790,16 +791,16 @@ LaTeX Info: Redefining \nameref on input line 7.
 
 (/Users/hongshanli/Library/2021/texmf-dist/tex/context/base/mkii/supp-pdf.mkii
 [Loading MPS to PDF converter (version 2006.09.02).]
-\scratchcounter=\count319
+\scratchcounter=\count320
 \scratchdimen=\dimen283
 \scratchbox=\box70
-\nofMPsegments=\count320
-\nofMParguments=\count321
+\nofMPsegments=\count321
+\nofMParguments=\count322
 \everyMPshowfont=\toks38
-\MPscratchCnt=\count322
+\MPscratchCnt=\count323
 \MPscratchDim=\dimen284
-\MPnumerator=\count323
-\makeMPintoPDFobject=\count324
+\MPnumerator=\count324
+\makeMPintoPDFobject=\count325
 \everyMPtoPDFconversion=\toks39
 )
 (/Users/hongshanli/Library/2021/texmf-dist/tex/latex/epstopdf-pkg/epstopdf-base
@@ -836,7 +837,7 @@ File: ursfs.fd 1998/03/24 rsfs font definition file (jk)
 
 pdfTeX warning: pdflatex (file pdftex.map): cannot open font map file
 ] [2]
-Overfull \hbox (4.13332pt too wide) detected at line 197
+Overfull \hbox (4.13332pt too wide) detected at line 247
 \OML/cmm/m/it/10 y\OT1/cmr/m/n/10 (\OML/cmm/m/it/10 r; s[]; d\OT1/cmr/m/n/10 ) 
 = \OML/cmm/m/it/10 r \OT1/cmr/m/n/10 + \OML/cmm/m/it/10 ^^M\OT1/cmr/m/n/10 (1 \
 OMS/cmsy/m/n/10 ^^@ \OML/cmm/m/it/10 d\OT1/cmr/m/n/10 )([] \OML/cmm/m/it/10 Q[]
@@ -847,43 +848,42 @@ t/10 ^^Y[]\OT1/cmr/m/n/10 (\OMS/cmsy/m/n/10 ^^Aj\OML/cmm/m/it/10 s[]\OT1/cmr/m/
 n/10 )
  []
 
-[3] (./SAC.aux)
-
-LaTeX Warning: Label(s) may have changed. Rerun to get cross-references right.
-
+[3] [4] (./SAC.aux)
 Package rerunfilecheck Info: File `SAC.out' has not changed.
-(rerunfilecheck)             Checksum: D41D8CD98F00B204E9800998ECF8427E;0.
+(rerunfilecheck)             Checksum: 078E43D790BC382BEE586667D4C6654E;255.
  ) 
 Here is how much of TeX's memory you used:
- 22274 strings out of 478754
- 416719 string characters out of 5850683
- 701960 words of memory out of 5000000
- 39573 multiletter control sequences out of 15000+600000
- 409032 words of font info for 43 fonts, out of 8000000 for 9000
+ 22297 strings out of 478754
+ 416906 string characters out of 5850683
+ 703080 words of memory out of 5000000
+ 39589 multiletter control sequences out of 15000+600000
+ 411261 words of font info for 46 fonts, out of 8000000 for 9000
  1141 hyphenation exceptions out of 8191
- 131i,8n,136p,448b,576s stack positions out of 5000i,500n,10000p,200000b,80000s
- </Users/hongshanli/.texlive2021/texmf-var/fonts/pk/ljfour/public/cm/cmmi5.60
-0pk> </Users/hongshanli/.texlive2021/texmf-var/fonts/pk/ljfour/public/rsfs/rsfs
-7.600pk> </Users/hongshanli/.texlive2021/texmf-var/fonts/pk/ljfour/public/rsfs/
-rsfs10.600pk> </Users/hongshanli/.texlive2021/texmf-var/fonts/pk/ljfour/jknappe
-n/ec/ecbx1000.600pk> </Users/hongshanli/.texlive2021/texmf-var/fonts/pk/ljfour/
-jknappen/ec/tcrm1000.600pk> </Users/hongshanli/.texlive2021/texmf-var/fonts/pk/
-ljfour/public/cm/cmr5.600pk> </Users/hongshanli/.texlive2021/texmf-var/fonts/pk
-/ljfour/public/cm/cmsy5.600pk> </Users/hongshanli/Library/2021/texmf-dist/fonts
-/pk/ljfour/public/cm/dpi600/cmsy10.pk> </Users/hongshanli/Library/2021/texmf-di
-st/fonts/pk/ljfour/public/cm/dpi600/cmr7.pk> </Users/hongshanli/Library/2021/te
-xmf-dist/fonts/pk/ljfour/public/cm/dpi600/cmex10.pk> </Users/hongshanli/.texliv
-e2021/texmf-var/fonts/pk/ljfour/public/amsfonts/symbols/msbm10.600pk> </Users/h
-ongshanli/Library/2021/texmf-dist/fonts/pk/ljfour/public/cm/dpi600/cmmi7.pk> </
-Users/hongshanli/Library/2021/texmf-dist/fonts/pk/ljfour/public/cm/dpi600/cmr10
-.pk> </Users/hongshanli/Library/2021/texmf-dist/fonts/pk/ljfour/public/cm/dpi60
-0/cmsy7.pk> </Users/hongshanli/Library/2021/texmf-dist/fonts/pk/ljfour/public/c
-m/dpi600/cmmi10.pk> </Users/hongshanli/.texlive2021/texmf-var/fonts/pk/ljfour/j
-knappen/ec/ecrm1000.600pk>
-Output written on SAC.pdf (3 pages, 59850 bytes).
+ 131i,8n,136p,448b,837s stack positions out of 5000i,500n,10000p,200000b,80000s
+ </Users/hongshanli/.texlive2021/texmf-var/fonts/pk/ljfour/jknappen/ec/ecti10
+00.600pk> </Users/hongshanli/.texlive2021/texmf-var/fonts/pk/ljfour/jknappen/ec
+/ecbx1440.600pk> </Users/hongshanli/.texlive2021/texmf-var/fonts/pk/ljfour/publ
+ic/cm/cmmi5.600pk> </Users/hongshanli/.texlive2021/texmf-var/fonts/pk/ljfour/pu
+blic/rsfs/rsfs7.600pk> </Users/hongshanli/.texlive2021/texmf-var/fonts/pk/ljfou
+r/public/rsfs/rsfs10.600pk> </Users/hongshanli/.texlive2021/texmf-var/fonts/pk/
+ljfour/jknappen/ec/ecbx1000.600pk> </Users/hongshanli/.texlive2021/texmf-var/fo
+nts/pk/ljfour/jknappen/ec/tcrm1000.600pk> </Users/hongshanli/.texlive2021/texmf
+-var/fonts/pk/ljfour/public/cm/cmr5.600pk> </Users/hongshanli/.texlive2021/texm
+f-var/fonts/pk/ljfour/public/cm/cmsy5.600pk> </Users/hongshanli/Library/2021/te
+xmf-dist/fonts/pk/ljfour/public/cm/dpi600/cmsy10.pk> </Users/hongshanli/Library
+/2021/texmf-dist/fonts/pk/ljfour/public/cm/dpi600/cmr7.pk> </Users/hongshanli/L
+ibrary/2021/texmf-dist/fonts/pk/ljfour/public/cm/dpi600/cmex10.pk> </Users/hong
+shanli/.texlive2021/texmf-var/fonts/pk/ljfour/public/amsfonts/symbols/msbm10.60
+0pk> </Users/hongshanli/Library/2021/texmf-dist/fonts/pk/ljfour/public/cm/dpi60
+0/cmmi7.pk> </Users/hongshanli/Library/2021/texmf-dist/fonts/pk/ljfour/public/c
+m/dpi600/cmr10.pk> </Users/hongshanli/Library/2021/texmf-dist/fonts/pk/ljfour/p
+ublic/cm/dpi600/cmsy7.pk> </Users/hongshanli/Library/2021/texmf-dist/fonts/pk/l
+jfour/public/cm/dpi600/cmmi10.pk> </Users/hongshanli/.texlive2021/texmf-var/fon
+ts/pk/ljfour/jknappen/ec/ecrm1000.600pk>
+Output written on SAC.pdf (4 pages, 88323 bytes).
 PDF statistics:
- 289 PDF objects out of 1000 (max. 8388607)
- 106 compressed objects within 2 object streams
- 24 named destinations out of 1000 (max. 500000)
- 13 words of extra memory for PDF output out of 10000 (max. 10000000)
+ 396 PDF objects out of 1000 (max. 8388607)
+ 125 compressed objects within 2 object streams
+ 28 named destinations out of 1000 (max. 500000)
+ 21 words of extra memory for PDF output out of 10000 (max. 10000000)
 
