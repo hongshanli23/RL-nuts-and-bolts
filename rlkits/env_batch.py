@@ -1,10 +1,7 @@
 # create parallel envs in subprocesses
-
 from multiprocessing import Process, Pipe
 from gym import Env, Wrapper, Space
 import numpy as np
-
-
 
 class SpaceBatch(Space):
     def __init__(self, spaces):

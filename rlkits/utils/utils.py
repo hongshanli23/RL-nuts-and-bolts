@@ -6,9 +6,12 @@ import matplotlib.pyplot as plt
 from IPython import display
 
 
+#### Pytorch and Numpy ####
+
 def flatten(params: Tuple[torch.Tensor, ...])-> torch.Tensor:
     """Convert input tensors into a flat vector"""
     return torch.cat([p.view(-1) for p in params])
+
 def set_from_flat(net, flat_vector):
     """Set parameters of a nn from a flat vector"""
     prev_ix = 0
@@ -17,6 +20,17 @@ def set_from_flat(net, flat_vector):
         p.data.copy_(flat_vector[prev_ix:prev_ix+sz].view(p.size()))
         prev_ix += sz
     return
+
+def to_tensor(*args):
+    new_args = []
+    for arg in args:
+        assert isinstance(arg, np.ndarray)
+        if arg.dtype == np.float64:
+            arg = arg.astype(np.float32)
+        new_args.append(torch.from_numpy(arg))
+    return new_args
+
+
 def explained_variance(ypred,y):
     """
     Computes fraction of variance that ypred explains about y.
@@ -26,11 +40,13 @@ def explained_variance(ypred,y):
         ev=0  =>  might as well have predicted zero
         ev=1  =>  perfect prediction
         ev<0  =>  worse than just predicting zero
-
     """
     assert y.ndim == 1 and ypred.ndim == 1
     vary = np.var(y)
     return np.nan if vary==0 else 1 - np.var(y-ypred)/vary
+
+
+#### Visualization ####
 
 def inspect_agent(env, agent, nsteps=1000):
     """Look at how the agent behaves in the 
@@ -58,4 +74,5 @@ def show_state(env, step=0, info=""):
     plt.axis('off')
     display.clear_output(wait=True)
     display.display(plt.gcf()) # get_current figure
+
 

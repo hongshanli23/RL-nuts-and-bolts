@@ -1,11 +1,9 @@
-
-
 # When computing loss of a policy, should we use the action from the
 # replay buffer (older policy), or should we use the action sampled
 # from the current policy ?
 
 # According to SAC paper, it seems that value functions are updated
-# using actions sampled from the old policy, whereas the policy is
+# using actions sampled from the current policy, whereas the policy is
 # updated through the actions sampled from the current policy via
 # reparametrization trick. Why it makes sense to do it this way?
 
@@ -39,6 +37,14 @@
 # To see how reparam helps stability, checkout
 # https://nbviewer.jupyter.org/github/gokererdogan/Notebooks/blob/master/Reparameterization%20Trick.ipynb
 
+from rlkits.memory import Memory
+from rlkits.utils import to_tensor
+from rlkits.policies import QNetForContinuousAction
+from rlkits.policies import Policy
+from copy import deepcopy
+import torch
+import torch.nn.functional as F
+
 def compute_loss(policy, Q1, Q1_targ, Q2, Q2_targ,
                  batch, gamma, alpha):
     obs, acs, rews, nxs, dones = batch['obs0'], batch['actions'],\
@@ -46,74 +52,102 @@ def compute_loss(policy, Q1, Q1_targ, Q2, Q2_targ,
 
     obs, acs, rews, nxs, dones = to_tensor(
         obs, acs, rews, nxs, dones)
-    # target for value net
+    
+    # compute the target for the Q-nets
+    # treat nxa and nxa_logprob as constant
     with torch.no_grad():
-        # next action needs to be sampled from the CURRENT policy
-        # in contrast to DDPG
-        nxa = policy(nxs)
+        nxa, nxa_lopprob = policy(nxs)
         nxv = torch.minimum(
-            Q1_targ(nxs, nxa), Q2_targ(nxs, nxa)
+            Q1_targ(nxs, nxa.detach()), Q1_targ(nxs, nxa.detach())
         )
+    
+    assert rews.shape == nxv.shape, f"{rews.shape}, {nxv.shape}"    
+    y = rews + gamma*(1-dones)*(nxv - alpha*nxa_logprob.detach())
 
-    assert rews.shape == nxv.shape, f"{rews.shape}, {nxv.shape}"
-
-    # target for value net
-    y = rews + gamma*(1-dones)*(nxv - alpha*policy.log_proba(nxa))
-
-    # value loss
+    # compute value loss
     q1, q2 = Q1(obs, acs), Q2(obs, acs)
     Q1_loss = F.mse_loss(q1, y)
     Q2_loss = F.mse_loss(q2, y)
-
-    # policy loss
-    # sample an action from \pi(\cdot | s) via reparam
-    m, std = policy(obs)
-    acs_curr = torch.tanh(
-        m + std*Gaussian(0, 1).sample())
-
-    # log probability of acs_curr
-    # pushing m + std * \zeta changes the distribtution
-    # log probability should be the log probability
-    # of m + std*Gaussian(0,1)
-    # Ultimately, we want to encourage entropy, so it is
-    # equivalent to make std a bit larger
-    policy_loss = torch.mean(
-        torch.minimum(q1, q2) - alpha*policy.log_proba(
-
-    # predicted q-value for the current state and action
-    q_pred = value_net(obs, acs)
-    value_loss = F.mse_loss(q_pred, q_targ)
-
-    # policy loss
-    policy_loss = -value_net(obs, policy(obs)).mean()
-
+    
+    # pytorch support multiple forward pass
+    # all computation graphs are saved
+    # https://discuss.pytorch.org/t/multiple-forward-passes-single-conditional-backward-pass/99277
+    # this means I can compute loss f
+    
+    # compute policy loss
+    # objective is to maximize 
+    # Q(s, a) - \alpha \log \pi(a | s), a sampled from the current policy
+    acs_t, acs_t_logprob = policy.step(obs, no_grad=False)
+    policy_loss = -(torch.minimum(Q1(obs, acs_t), Q2(obs, acs_t)) - alpha*acs_t_logprob)
+    
     res = {
             "policy_loss": policy_loss,
-            "value_loss": value_loss
+            "Q1_loss": Q1_loss,
+            "Q2_loss": Q2_loss
           }
 
 
 def SAC(*,
+        env_name,
+        nsteps,
+        buf_size,
+        warm_up_steps,
+        gamma,
+        alpha,
+        polyak,
+        batch_size,
+        log_dir,
+        ckpt_dir,
+        **network_kwargs
         ):
+    
+    # env
+    def make_env():
+        env = gym.make(env_name)
+        env = StartWithRandomActions(env, max_random_actions=5)
+        env = RecoverAction(env)
+        return env
 
-    Q1 = QNet()
-    Q2 = QNet()
-    policy = StochasticPolicy()
+    env = make_env()
 
+    if not os.path.exists(log_dir):
+        os.makedirs(log_dir)
+    if not os.path.exists(ckpt_dir):
+        os.makedirs(ckpt_dir)
+    logger.configure(dir=log_dir)
+
+    ob_space = env.observation_space
+    ac_space = env.action_space
+    print("======", f"action space shape {ac_space.shape}, \
+          ob space shape: {ob_space.shape}", "======")
+    
+    # Q-net
+    Q1 = QNetForContinuousAction(
+        ob_space=ob_space, ac_space=ac_space,
+        ckpt_dir=ckpt_dir,
+        **network_kwargs
+        )
+    Q2 = deepcopy(Q1)
+    
+    # target Q-net
+    Q1_targ = deepcopy(Q1)
+    Q2_targ = deepcopy(Q1)
+    
+    # policy 
+    policy = SacPolicy(
+        ob_space=ob_space, ac_space=ac_space, ckpt_dir=ckpt_dir,
+        **network_kwargs
+    )
+
+    # memory buffer
     replay_buffer = Memory(
         limit=buf_size,
         action_shape=ac_space.shape
     )
 
-
-    replay_buffer = Memory(
-        limit=buf_size,
-        action_shape=ac_space.shape,
-        observation_shape=ob_space.shape
-    )
-
+    
     best_ret = np.float('-inf')
-    rolling_buf_episode_rets = deque(maxlen=10)
+    rolling_buf_episode_rets = deque(maxlen=100)
     curr_state = env.reset()
     policy.reset()
 
@@ -122,7 +156,7 @@ def SAC(*,
         if step < warm_up_steps:
             action = policy.random_action()
         else:
-            action = policy.step(curr_state)
+            action, _ = policy.step(curr_state, no_grad=True)
         nx, rew, done, _ = env.step(action)
         # record to the replay buffer
         assert nx.shape == ob_space.shape, f"{nx.shape},{ob_space.shape}"
