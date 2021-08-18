@@ -81,6 +81,20 @@ def REINFORCE(*,
               ckpt_dir,
               **network_kwargs
               ):
+    """
+    Args:
+        env_name ([type]): [description]
+        nsteps ([type]): [description]
+        total_timesteps ([type]): [description]
+        gamma ([type]): [description]
+        pi_lrlog_interval ([type]): [description]
+        max_grad_nrom ([type]): [description]
+        log_dir ([type]): [description]
+        ckpt_dir ([type]): [description]
+
+    Returns:
+        [type]: [description]
+    """
         
     # log and ckpts    
     if not os.path.exists(log_dir):

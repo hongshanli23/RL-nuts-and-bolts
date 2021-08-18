@@ -14,27 +14,18 @@ from rlkits.models import MLP, MLP2heads
 from rlkits.env_batch import SpaceBatch
 
 
-class RandomPolicyWithValue:
-    def __init__(self, ob_space, ac_space):
-        """
-        ob_space: gym env observation space
-        ac_space: gym env action space
-        """
-        self.ob_space = ob_space
-        self.ob_dim = len(ob_space.shape)
+class Policy:
+    """Interface for generic policy"""
+    def __init__(self, *args, **kwargs):
+        raise NotImplemented
 
-        self.ac_space = ac_space
-        self.ac_dim = len(ac_space.shape)
-
-    def step(self, x):
-        return self.take_action(x), self.predict_state_value(x)
-
-    def take_action(self, x):
-        return self.ac_space.sample(), 0.5
-
-    def predict_state_value(self, x):
-        return np.random.rand()
-
+    def step(self, state, **kwargs):
+        """Take an action based on the input state"""
+        raise NotImplemented
+    
+    def dist(self):
+        """Generate a distribution based on the problem type"""
+        raise NotImplemented
 
     
 def average_weight(model):
@@ -58,13 +49,12 @@ def save_ckpt(model, ckpt_dir, postfix=''):
     """Save model checkpoint at
     $ckpt_dir/ckpt-$postfix.pth
     
-    Parameters:
+    Args:
         model: torch model
         ckpt_dir: directory to save the ckpt
         postfix: a postfix to add to ckpt file
     
     Returns:
-    --------
         None
     """
     
@@ -82,7 +72,7 @@ def load_ckpt(model, ckptfile):
     It assumes the unpickled checkpoint maps the 
     key 'model' to the state dict of the network
     
-    s:
+    Args:
         model: torch model
         ckptfile: path to the ckpt
     
@@ -117,8 +107,85 @@ def transform_input(*args):
         new_args.append(x)
     return new_args
     
+class RandomPolicyWithValue(Policy):
+    def __init__(self, ob_space, ac_space):
+        """
+        ob_space: gym env observation space
+        ac_space: gym env action space
+        """
+        self.ob_space = ob_space
+        self.ob_dim = len(ob_space.shape)
+
+        self.ac_space = ac_space
+        self.ac_dim = len(ac_space.shape)
+
+    def step(self, x):
+        return self.take_action(x), self.predict_state_value(x)
+
+    def take_action(self, x):
+        return self.ac_space.sample(), 0.5
+
+    def predict_state_value(self, x):
+        return np.random.rand()
+
+class REINFORCEPolicy(Policy):
+    """"Policy for REINFORCE"""
+    def __init__(self, ob_space, ac_space, ckpt_dir, 
+                 **network_kwargs):
+        
+        self.ob_space = ob_space
+        self.ob_dim  = len(ob_space.shape)
+        
+        self.ac_space = ac_space
+        self.ac_space_dim = np.prod(ac_space.shape).item()
+        
+        self.ckpt_dir = ckpt_dir
+        
+        # TODO 
+        # add support for continuous tasks
+        assert type(ac_space) is not gym.spaces.Discrete, "only support discrete action space for now"
+        self.continuous = False
+        
+        self.output_dim = ac_space.n     
+   
+        # output mean and log std of a gaussian dist
+        self.model = MLP(input_shape=self.input_dim, 
+                        output_shape=self.output_dim, 
+                        **network_kwargs)
+    def dist(self, params):
+        if self.continuous:
+            pass
+        else:
+            proba = torch.softmax(params, dim=-1)
+            return Categorical(proba)
+         
+    def step(self, obs):
+        obs = transform_input(obs)
+        with torch.no_grad():
+            dist = self.dist(self.model(obs))
+            
+            
+        dist = 
+        x = self.transform_input(x)
+        with torch.no_grad():
+            y = self.policy_net(x)
+            dist = self.dist(y)
+
+        if dist is None:
+            print("Policy net blows up -- Bad")
+            self.save_ckpt()
+
+        action = dist.sample()
+        log_prob = dist.log_prob(action)
+        return (
+            action.numpy(), log_prob.numpy()
+        )
+        
+        
+        
+    
 class SACPolicy(Policy):
-    """Policy for SAC algorithm"""
+    """Policy for SAC """
     def __init__(self, ob_space, ac_space, ckpt_dir, 
                  **network_kwargs):
         """[summary]
@@ -182,8 +249,6 @@ class SACPolicy(Policy):
         return a, logprob
         
     def step(self, obs, ):
-         
-    
     
 class DeterministicPolicy:
     """Deterministic policy for continuous action space"""

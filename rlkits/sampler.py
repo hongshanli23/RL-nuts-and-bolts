@@ -39,11 +39,6 @@ class SimpleTrajectorySampler:
                 "log_probs": self.log_probs,
                 "rews": self.rews,
                 "dones": self.dones}
-        
-            
-        
-        
-    
 
 class ParallelEnvTrajectorySampler:
     """Sample trajectories in parallel env"""
@@ -178,8 +173,6 @@ def estimate_Q(sampler, trajectory):
     return
 
 ### Helpers ####
-
-
 
 def aggregate_experience(arr):
     """
