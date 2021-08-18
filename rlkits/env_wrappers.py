@@ -4,12 +4,13 @@ import gym
 import numpy as np
 
 
+
 class AutoReset(gym.Wrapper):
     """Automatically reset the env when it is done"""
 
     def __init__(self, env):
         super(AutoReset, self).__init__(env)
-
+    
     def step(self, action):
         obs, rew, done, info = self.env.step(action)
         if done:

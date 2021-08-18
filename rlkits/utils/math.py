@@ -2,6 +2,8 @@ import numpy as np
 import torch
 from torch.distributions import Normal, Categorical
 
+def safemean(x):
+    return np.nan if len(x)==0 else np.mean(x)
 
 def explained_variance(ypred,y):
     """
@@ -53,9 +55,6 @@ def conjugate_gradient(f_Ax, b, cg_iters=10, verbose=False, residual_tol=1e-10):
     }
     return x, info
         
-
-    
-    
 def _KL_normal(dist1:Normal, dist2:Normal):
     """KL of two normal distribution"""
 

@@ -10,8 +10,9 @@ from torch.distributions import Normal, Categorical
 import torch.nn.functional as F
 from torch.distributions import Normal
 
-from rlkits.models import MLP, MLP2heads
+from rlkits.models import MLP
 from rlkits.env_batch import SpaceBatch
+from ipdb import set_trace 
 
 
 class Policy:
@@ -102,6 +103,8 @@ def transform_input(*args):
     """
     new_args = []
     for i, x in enumerate(args):
+        if isinstance(x, np.ndarray):
+            x = torch.from_numpy(x).float()
         if len(x.shape) == 1:
             x = torch.unsqueeze(x, dim=0)
         new_args.append(x)
@@ -135,51 +138,88 @@ class REINFORCEPolicy(Policy):
         
         self.ob_space = ob_space
         self.ob_dim  = len(ob_space.shape)
+        self.input_dim = np.prod(ob_space.shape).item()
         
         self.ac_space = ac_space
         self.ac_space_dim = np.prod(ac_space.shape).item()
-        
+
         self.ckpt_dir = ckpt_dir
         
         # TODO 
         # add support for continuous tasks
-        assert type(ac_space) is not gym.spaces.Discrete, "only support discrete action space for now"
+        assert isinstance(ac_space, gym.spaces.discrete.Discrete), "only support discrete action space for now"
         self.continuous = False
         
         self.output_dim = ac_space.n     
-   
         # output mean and log std of a gaussian dist
-        self.model = MLP(input_shape=self.input_dim, 
+        self.model = MLP(input_shape=self.input_dim,
                         output_shape=self.output_dim, 
                         **network_kwargs)
+            
     def dist(self, params):
+        """Create a distribution over action space
+
+        Args:
+            params (torch.Tensor): parameters of the distribution. 
+            For example, for continuous action space, the parameters
+            can be the mean and the standard deviation of a Gaussian
+            distribution; for discrete action space, the parameters
+            can be probabilities of each action
+
+        Returns:
+            torch.Distribution
+        """
         if self.continuous:
-            pass
+                return None
         else:
-            proba = torch.softmax(params, dim=-1)
-            return Categorical(proba)
+            try:
+                proba = torch.softmax(params, dim=-1)
+                return Categorical(proba)
+            except:
+                return None
+                
          
     def step(self, obs):
-        obs = transform_input(obs)
+        """Take an action at the given state of the env
+
+        Args:
+            obs (torch.Tenosr or np.ndarray): state of the 
+            env 
+
+        Returns:
+            (np.ndarray, np.ndarray): action and its log probability
+        """
+        x, = transform_input(obs)
         with torch.no_grad():
-            dist = self.dist(self.model(obs))
-            
-            
-        dist = 
-        x = self.transform_input(x)
-        with torch.no_grad():
-            y = self.policy_net(x)
+            y = self.model(x)
             dist = self.dist(y)
 
         if dist is None:
             print("Policy net blows up -- Bad")
-            self.save_ckpt()
+            self.save_ckpt('dead')
+            set_trace()
+            sys.exit()
 
         action = dist.sample()
         log_prob = dist.log_prob(action)
         return (
             action.numpy(), log_prob.numpy()
         )
+    
+    def average_weight(self):
+        return average_weight(self.model)
+    
+    def save_ckpt(self, postfix, optimizer=None):
+        save_ckpt(self.model, self.ckpt_dir, postfix)
+        if optimizer:
+            torch.save(optimizer.state_dict(), os.path.join(
+                self.ckpt_dir, f"optim-{postfix}.pth"
+            ))
+        return
+    
+    def load_ckpt(self, ckptfile):
+        load_ckpt(self.model, ckptfile)
+        return
         
         
         
@@ -248,7 +288,6 @@ class SACPolicy(Policy):
         logprob -= torch.log(1 - torch.tanh(u))
         return a, logprob
         
-    def step(self, obs, ):
     
 class DeterministicPolicy:
     """Deterministic policy for continuous action space"""

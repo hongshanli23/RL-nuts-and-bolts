@@ -1,6 +1,5 @@
 # REINFORCE
 
-from _typeshed import OpenTextModeUpdating
 from contextlib import contextmanager
 from collections import deque
 import numpy as np
@@ -15,14 +14,13 @@ import rlkits.utils.logger as logger
 from rlkits.env_wrappers import AutoReset
 
 from rlkits.sampler import SimpleTrajectorySampler 
-from rlkits.sampler import estimate_Q
-from rlkits.sampler import aggregate_experience
 from rlkits.sampler import shuffle_experience
-from rlkits.policies import Policy
+from rlkits.policies import REINFORCEPolicy
 import rlkits.utils as U
 from rlkits.utils import colorize
 import rlkits.utils.logger as logger
-from rlkits.utils.math import explained_variance
+from rlkits.utils.math import explained_variance, safemean
+
 
 import torch
 import torch.optim as optim
@@ -30,8 +28,9 @@ import torch.nn.functional as F
 from torch.nn.utils import clip_grad_norm_
 
 from typing import Dict
+from ipdb import set_trace
 
-def compute_loss(policy: Policy, trajectory: Dict) -> torch.Tensor:
+def compute_loss(policy, trajectory):
     """Compute policy loss along a trajectory
 
     Args:
@@ -44,14 +43,14 @@ def compute_loss(policy: Policy, trajectory: Dict) -> torch.Tensor:
     obs = torch.from_numpy(trajectory['obs'])
     
     # policy as distribution over action space
-    dist = policy.dist(pi.net(obs))
+    dist = policy.dist(policy.model(obs))
     if dist is None:
         logger.log('Got Nan -- Bad')
         policy.save_ckpt('broken')
         args = {
             "trajectory":trajectory
         }
-        with open(os.path.join(log_dir, 'local.pkl'), 'wb') as f:
+        with open(os.path.join(policy.ckpt_dir, 'local.pkl'), 'wb') as f:
             pickle.dump(args, f)
         sys.exit()
     
@@ -61,7 +60,7 @@ def compute_loss(policy: Policy, trajectory: Dict) -> torch.Tensor:
     
     if len(log_prob.shape) > 1:
         log_prob = log_prob.squeeze(dim=1)
-    assert log_prob.shape==adv.shape, f"log_prob shape: \
+    assert log_prob.shape==Q.shape, f"log_prob shape: \
         {log_prob.shape} Q shape: {Q.shape}"
     
     # pytorch optimizer only does gradient descent
@@ -74,34 +73,39 @@ def REINFORCE(*,
               nsteps,
               total_timesteps,
               gamma,
-              pi_lr
+              pi_lr,
               log_interval,
-              max_grad_nrom,
-              log_dir,
+              max_grad_norm,
               ckpt_dir,
               **network_kwargs
               ):
     """
+    REINFORCE algorithm
+
     Args:
-        env_name ([type]): [description]
-        nsteps ([type]): [description]
-        total_timesteps ([type]): [description]
-        gamma ([type]): [description]
-        pi_lrlog_interval ([type]): [description]
-        max_grad_nrom ([type]): [description]
-        log_dir ([type]): [description]
-        ckpt_dir ([type]): [description]
+        env_name (str): name of the gym env
+        nsteps (int): length of a trajectory to sample
+            for each policy update 
+        total_timesteps (int): total number of frames to 
+            train
+        gamma (float): discount factor 
+        pi_lr (float): learning rate
+        log_interval (int): log and print per $log_interval
+            training steps 
+        max_grad_norm (float): gradient of parameters
+            in each layer is clipped so that the norm
+            for each layer is less than or equal to 
+            $max_grad_norm
+        ckpt_dir (str): directory to save the checkpoint 
 
     Returns:
-        [type]: [description]
+        None
     """
         
     # log and ckpts    
-    if not os.path.exists(log_dir):
-        os.makedirs(log_dir)
     if not os.path.exists(ckpt_dir):
         os.makedirs(ckpt_dir)
-    logger.configure(dir=log_dir)
+    logger.configure(dir=ckpt_dir)
 
     # env 
     def make_env():
@@ -114,12 +118,12 @@ def REINFORCE(*,
     ac_space = env.action_space
     
     # init a policy
-    policy = Policy(ob_space=ob_space,
+    policy = REINFORCEPolicy(ob_space=ob_space,
                     ac_space=ac_space, 
                     ckpt_dir=ckpt_dir, 
                     **network_kwargs)
     
-    optimizer = optim.Adam(policy.net.parameters(), lr=pi_lr)
+    optimizer = optim.Adam(policy.model.parameters(), lr=pi_lr)
 
     # trajectory sampler
     sampler = SimpleTrajectorySampler(env, policy, nsteps)
@@ -146,9 +150,9 @@ def REINFORCE(*,
         # when computing reinforcement offset, it helps
         # to reduce variance by normalizing the reward
         # collected at each time step
-        trajectory['rews'] = (
-            trajectory['rews'] - np.mean(trajectory['rews'])
-        ) / np.std(trajectory['rews'])
+        # trajectory['rews'] = (
+        #    trajectory['rews'] - np.mean(trajectory['rews'])
+        #) / np.std(trajectory['rews'])
         
         Q = np.zeros(nsteps, dtype=np.float32)
         future_rews = 0.0
@@ -156,11 +160,12 @@ def REINFORCE(*,
             not_done = not trajectory['dones'][t]
             Q[t] = trajectory['rews'][t] + gamma * not_done * future_rews
             future_rews = Q[t]
+        trajectory['Q'] = Q
             
         # use forward view to update total rewards
         for t in range(0, len(trajectory)):
             not_done = not trajectory['dones'][t]
-            if not_done:
+            if not_done and rolling_buf_episode_rets:
                 # add reward to the last episode
                 rolling_buf_episode_rets[-1]+=trajectory['rews'][t]
             else:
@@ -172,9 +177,9 @@ def REINFORCE(*,
         optimizer.zero_grad()
         loss.backward()
         # clip the gradient to make the training more stable
-        clip_grad_norm_(policy.net.parameters(), 
+        clip_grad_norm_(policy.model.parameters(), 
                         max_norm=max_grad_norm)
-        optimizer.update()
+        optimizer.step()
         
         # timestamp when finish one step of training
         tnow = time.perf_counter()
@@ -192,15 +197,35 @@ def REINFORCE(*,
             logger.record_tabular('ma_ep_ret', ret)
             # average reward per step
             logger.record_tabular('mean_rew_step', 
-                                  np.mean(trajectory['rews'])
-                                  )
+                                 np.mean(trajectory['rews'])
+                                 )
             # save the best ckpt
             if ret != np.nan and ret > best_ret:
                 best_ret = ret
-                policy.save_ckpt('best')
+                policy.save_ckpt('best', optimizer)
 
-        logger.dump_tabular()
-        
+
+            logger.dump_tabular()
+        #set_trace()
+    
+    policy.save_ckpt('final', optimizer)
+    end = time.perf_counter()
+    logger.log(f"Total time elapsed: {end - start}")
+    return
+
+if __name__ == '__main__':
+    REINFORCE(
+        env_name='CartPole-v0',
+        nsteps=32,
+        total_timesteps=int(1e6),
+        gamma=0.99,
+        pi_lr=1e-4,
+        log_interval=1000,
+        max_grad_norm=0.1,
+        ckpt_dir="/tmp",
+        hidden_layers=[64, 128]
+    )
+    
                                 
             
             
