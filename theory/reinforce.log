@@ -1,4 +1,4 @@
-This is pdfTeX, Version 3.141592653-2.6-1.40.22 (TeX Live 2021) (preloaded format=pdflatex 2021.8.11)  16 AUG 2021 18:26
+This is pdfTeX, Version 3.141592653-2.6-1.40.22 (TeX Live 2021) (preloaded format=pdflatex 2021.8.11)  17 AUG 2021 12:22
 entering extended mode
  restricted \write18 enabled.
  %&-line parsing enabled.
@@ -791,15 +791,16 @@ LaTeX Font Info:    Trying to load font information for U+rsfs on input line 9.
 File: ursfs.fd 1998/03/24 rsfs font definition file (jk)
 ) [1
 
-{/usr/local/texlive/2021/texmf-var/fonts/map/pdftex/updmap/pdftex.map}] [2]
+{/usr/local/texlive/2021/texmf-var/fonts/map/pdftex/updmap/pdftex.map}] [2] [3]
+
 (./reinforce.aux)
 Package rerunfilecheck Info: File `reinforce.out' has not changed.
 (rerunfilecheck)             Checksum: 56FE31F015B1D1B7E5196217AF6B858B;389.
  ) 
 Here is how much of TeX's memory you used:
- 21987 strings out of 478994
- 410330 string characters out of 5858184
- 696354 words of memory out of 5000000
+ 21988 strings out of 478994
+ 410336 string characters out of 5858184
+ 697345 words of memory out of 5000000
  39049 multiletter control sequences out of 15000+600000
  412321 words of font info for 64 fonts, out of 8000000 for 9000
  1141 hyphenation exceptions out of 8191
@@ -819,10 +820,10 @@ ve/2021/texmf-dist/fonts/type1/public/amsfonts/cm/cmsy7.pfb></usr/local/texlive
 /2021/texmf-dist/fonts/type1/public/amsfonts/cm/cmti10.pfb></usr/local/texlive/
 2021/texmf-dist/fonts/type1/public/amsfonts/symbols/msbm10.pfb></usr/local/texl
 ive/2021/texmf-dist/fonts/type1/public/amsfonts/symbols/msbm7.pfb>
-Output written on reinforce.pdf (2 pages, 153632 bytes).
+Output written on reinforce.pdf (3 pages, 159139 bytes).
 PDF statistics:
- 107 PDF objects out of 1000 (max. 8388607)
- 87 compressed objects within 1 object stream
- 19 named destinations out of 1000 (max. 500000)
+ 111 PDF objects out of 1000 (max. 8388607)
+ 90 compressed objects within 1 object stream
+ 20 named destinations out of 1000 (max. 500000)
  29 words of extra memory for PDF output out of 10000 (max. 10000000)
 

@@ -62,6 +62,12 @@ estimate of the policy gradient.
 
 \section{REINFORCE}
 Now, we have enough ingredients for a vanilla policy gradient algorithm: REINFORCE
+(REward Increment = nonnegative factor $\times$ Offset Reinforcement $\times$ Characteristic Eligibility)
+\[
+  \stackrel{\text{reward increment}}{\epsilon \nabla(J(\theta))} = \stackrel{\text{non-negative factor}}
+  {\alpha}\times \stackrel{\text{offset reinforcement}}{q_{\pi}(s,a)} 
+  \times \stackrel{\text{characteristic eligibility}}{\nabla \log \pi(a|s)}
+\]
 
 \begin{algorithm}[H]
   \caption{REINFORCE}

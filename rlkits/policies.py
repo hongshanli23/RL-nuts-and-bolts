@@ -40,8 +40,7 @@ class RandomPolicyWithValue:
 def average_weight(model):
     """Compute average weight the parameters of a neural network
     
-    Parameters:
-    -----------
+    Argss:
         model (nn.Module)
     
     Returns:
@@ -60,7 +59,6 @@ def save_ckpt(model, ckpt_dir, postfix=''):
     $ckpt_dir/ckpt-$postfix.pth
     
     Parameters:
-    -----------
         model: torch model
         ckpt_dir: directory to save the ckpt
         postfix: a postfix to add to ckpt file
@@ -84,13 +82,11 @@ def load_ckpt(model, ckptfile):
     It assumes the unpickled checkpoint maps the 
     key 'model' to the state dict of the network
     
-    Parameters:
-    -----------
+    s:
         model: torch model
         ckptfile: path to the ckpt
     
     Returns:
-    --------
         model with loaded checkpoint
     """
     ckpt = torch.load(ckptfile)
@@ -100,15 +96,14 @@ def load_ckpt(model, ckptfile):
 def random_action(ac_space):
     """Take a random action sampled from the action space
     
-    Parameters:
-    -----------
+    Argss:
         ac_space: gym env action space
     
     Returns:
-    --------
         (numpy.ndarray) a random action 
     """
     return ac_space.sample()
+
 
 def transform_input(*args):
     """Preprocess input
