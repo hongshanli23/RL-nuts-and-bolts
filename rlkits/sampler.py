@@ -1,10 +1,57 @@
 import numpy as np
 from rlkits.env_batch import EnvBatch
 from rlkits.env_batch import SingleEnvBatch, ParallelEnvBatch
+from ipdb import set_trace
 
+
+class SimpleTrajectorySampler:
+    """Sample trajectories in non-parallel env for policies
+    without value functions. Use for vanilla policy gradient
+    algorithms
+    """
+    def __init__(self, env, policy, nsteps):
+        self.env = env
+        self.policy = policy
+        self.nsteps = nsteps
+
+        self.curr_state = self.env.reset()
+        
+        ob_space = self.env.observation_space
+        ac_space = self.env.action_space
+         
+        # trajectory data 
+        # states
+        self.obs = np.zeros((nsteps,) + ob_space.shape, dtype=np.float32)
+        # action at each time step
+        self.actions = np.zeros((nsteps,)+ac_space.shape,  dtype=np.float32)
+        
+        # log probability of action at each step
+        self.log_probs = np.zeros((nsteps,)+ac_space.shape, dtype=np.float32)
+
+        # reward at each steps
+        self.rews = np.zeros(nsteps, dtype=np.float32)
+        
+        # whether action results end of env
+        self.dones = np.zeros(nsteps, dtype=np.float32)
+        
+    def __call__(self):
+        curr_state = self.curr_state
+        for i in range(self.nsteps):
+            self.obs[i] = curr_state
+            ac, log_prob = self.policy.step(curr_state)
+            self.actions[i], self.log_probs[i] = ac, log_prob
+            next_state, rew, done, _ = self.env.step(ac.item())
+            self.rews[i], self.dones[i] = rew, done
+            curr_state = next_state
+        
+        return {"obs": self.obs,
+                "actions": self.actions,
+                "log_probs": self.log_probs,
+                "rews": self.rews,
+                "dones": self.dones}
 
 class ParallelEnvTrajectorySampler:
-    """Sample a trajectory"""
+    """Sample trajectories in parallel env"""
     def __init__(self, env, policy, nsteps, reward_transform=None, gamma=0.99):
         """
         nsteps: number of steps to sample each time
@@ -136,8 +183,6 @@ def estimate_Q(sampler, trajectory):
     return
 
 ### Helpers ####
-
-
 
 def aggregate_experience(arr):
     """

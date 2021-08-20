@@ -9,6 +9,8 @@ import tempfile
 from collections import defaultdict
 from contextlib import contextmanager
 
+from ipdb import set_trace
+
 DEBUG = 10
 INFO = 20
 WARN = 30
@@ -46,6 +48,7 @@ class HumanOutputFormat(KVWriter, SeqWriter):
 
         # Find max widths
         if len(key2str) == 0:
+            set_trace()
             print('WARNING: tried to write empty key-value dict')
             return
         else:

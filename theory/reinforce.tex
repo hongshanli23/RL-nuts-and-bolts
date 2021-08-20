@@ -1,0 +1,107 @@
+\documentclass{article}
+\usepackage{macro}
+\usepackage{graphicx}
+\graphicspath{ {./} }
+\title{Policy Gradient and REINFORCE}
+\author{Hongshan Li(hongshal@amazon.com)}
+\begin{document}
+\maketitle
+Last time we discussed policy gradient and how it is related to the relative
+importance of the state and state action value
+
+\begin{theorem}{Policy Gradient Theorem}
+For a parametrized policy $\pi_{\theta}$, let $J(\theta)$ denote the
+value of the policy $v_{\pi}(s_0)$, where $s_0$ is the initial 
+state of the MDP. Then
+\[
+  \tag{1}
+  \nabla J(\theta) \propto \int_{\mathbb{S}}\mu(s)
+  \int_{\mathbb{A}}\nabla \pi(a|s)q_{\pi}(s, a) dsda
+\]
+where $\mathbb{S}$ denote the state space of the MDP and $\mathbb{A}$
+denote the action space of the policy.
+\end{theorem}
+The theorem says the policy gradient, i.e. the direction that improves
+the policy should be propotional to the importance of the state and 
+the state action value. This should make intuitive sense. The gist
+of policy gradient is that it maximizes the likelihood of good action,
+and "good action" means action with high state action value at important
+state. 
+
+\section{Estimate Policy Gradient with Monte Carlo Method}
+In order to estimate the policy gradient with Monte Carlo sampling,
+the first thing we need to do is to write the integration in the policy
+gradient theorem into an expectation over policy runs. So that we 
+estimate it by executing the policy a couple of times in the env. 
+
+Recall to compute the expectation of a function $f(x)$ over certain 
+distribution $p(x)$ of $x \in \R$, we have 
+\[
+  \E_{x\sim p(x)}[f(x)] = \int_{\R} p(x)f(x) dx
+\]
+Therefore to make Eq 1 an expection over the policy, we do
+\begin{align*}
+  \nabla J(\theta) & \propto \int_{\mathbb{S}}\mu(s)
+   \int_{\mathbb{A}}\nabla \pi(a|s)q_{\pi}(s, a) dsda \\
+  & = \int_{\mathbb{S}}\mu(s)\int_{\mathbb{A}}\pi(a|s) \frac{\nabla\pi(a|s)}{\pi(a|s)}q_{\pi}(s, a) dsda \\
+  & = \E_{\tau \sim \pi}(\frac{\nabla \pi(a|s)}{\pi(a|s)}q_{\pi}(s,a)) \\
+  & = \E_{\tau \sim \pi}(\nabla \log(\pi(a|s))q_{\pi}(s,a)) 
+\end{align*}
+
+Recall 
+\[
+  \frac{d \log f(x)}{dx} = \frac{1}{f(x)} \frac{d f(x)}{dx}
+\]
+
+This trick of estimating gradient of through its log derivative is called 
+\emph{log derivative trick} in statistical learning. 
+
+This means by following the current policy $\pi$ for a few epsidoes and compute
+the average of $\nabla \log(\pi(a|s))q_{\pi}(s,a)$ we would get an unbiased 
+estimate of the policy gradient. 
+
+\section{REINFORCE}
+Now, we have enough ingredients for a vanilla policy gradient algorithm: REINFORCE
+(REward Increment = nonnegative factor $\times$ Offset Reinforcement $\times$ Characteristic Eligibility)
+\[
+  \stackrel{\text{reward increment}}{\epsilon \nabla(J(\theta))} = \stackrel{\text{non-negative factor}}
+  {\alpha}\times \stackrel{\text{offset reinforcement}}{q_{\pi}(s,a)} 
+  \times \stackrel{\text{characteristic eligibility}}{\nabla \log \pi(a|s)}
+\]
+
+\begin{algorithm}[H]
+  \caption{REINFORCE}
+\end{algorithm}
+\begin{algorithmic}[1]
+  \STATE: INPUT: a differentiable policy $\pi_{\theta}$;
+  a learning rate $\alpha$; 
+  \STATE Initialze the parameters $\theta$
+  
+  \REPEAT
+    \STATE Generate an episode $s_0, a_0, r_1, \cdots, s_{T-1}, a_{T-1}, r_T$
+    \FOR {$t=T-1, T-2, \cdots, 0$}
+    \STATE Compute 
+    \[
+      q_{\pi}(a_t, s_t)  = R_{t+1}+\gamma R_{t+2} + \cdots + 
+        \gamma^{T-t-1}R_T
+    \]
+    \STATE Estiamte policy gradient
+    \[
+      \hat {\nabla J(\theta)} = \nabla \log \pi(a_t|s_t)q_{\pi}(a_t, s_t)
+    \]
+    \STATE Update parameter
+    \[
+      \theta \leftarrow \theta + \alpha\frac{1}{T}\hat{\nabla J(\theta)}
+    \]
+    \ENDFOR
+  \UNTIL{Policy is good enough}
+\end{algorithmic}
+
+      
+
+    
+
+
+\end{document}
+
+
