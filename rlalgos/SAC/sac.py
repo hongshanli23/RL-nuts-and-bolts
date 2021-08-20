@@ -1,28 +1,28 @@
-# When computing loss of a policy, should we use the action from the
-# replay buffer (older policy), or should we use the action sampled
-# from the current policy ?
+# When computing loss of a pi, should we use the action from the
+# replay buffer (older pi), or should we use the action sampled
+# from the current pi ?
 
 # According to SAC paper, it seems that value functions are updated
-# using actions sampled from the current policy, whereas the policy is
-# updated through the actions sampled from the current policy via
+# using actions sampled from the current pi, whereas the pi is
+# updated through the actions sampled from the current pi via
 # reparametrization trick. Why it makes sense to do it this way?
 
 # For value net update, using the action sampled from the current
-# policy amounts to a better label. The current policy makes an
+# pi amounts to a better label. The current pi makes an
 # action so that the corresponding state action value Q(s, a) is a more
 # accurate approximation of the state value V(s).
 
-# For policy update, we need the policy gradient of the current
-# policy, so naturally we should sample an action (for a state
+# For pi update, we need the pi gradient of the current
+# pi, so naturally we should sample an action (for a state
 # retrieved from replay buffer).
 
 # In DDPG, the same better label for value function is given by
 # the state action approximation of the target net over action
-# sampled from target policy (on the next state).
+# sampled from target pi (on the next state).
 
 # the reparametrization makes the distribution of
 # acs_curr independent from the parameters of the
-# policy net.
+# pi net.
 # reparametrization is a way to write the expectation
 # independent from the parameter
 
@@ -37,15 +37,24 @@
 # To see how reparam helps stability, checkout
 # https://nbviewer.jupyter.org/github/gokererdogan/Notebooks/blob/master/Reparameterization%20Trick.ipynb
 
+import os
+from collections import deque
+import gym
+import numpy as np
 from rlkits.memory import Memory
 from rlkits.utils import to_tensor
 from rlkits.policies import QNetForContinuousAction
-from rlkits.policies import Policy
+from rlkits.policies import SACPolicy
+from rlkits.env_wrappers import StartWithRandomActions,RecoverAction
+import rlkits.utils.logger as logger
+
 from copy import deepcopy
 import torch
 import torch.nn.functional as F
+import torch.optim as optim
 
-def compute_loss(policy, Q1, Q1_targ, Q2, Q2_targ,
+
+def compute_loss(pi, q1, q1_targ, q2, q2_targ,
                  batch, gamma, alpha):
     obs, acs, rews, nxs, dones = batch['obs0'], batch['actions'],\
         batch['rewards'], batch['obs1'], batch['terminals1']
@@ -56,35 +65,41 @@ def compute_loss(policy, Q1, Q1_targ, Q2, Q2_targ,
     # compute the target for the Q-nets
     # treat nxa and nxa_logprob as constant
     with torch.no_grad():
-        nxa, nxa_lopprob = policy(nxs)
+        nxa, nxa_logprob = pi(nxs)
         nxv = torch.minimum(
-            Q1_targ(nxs, nxa.detach()), Q1_targ(nxs, nxa.detach())
+            q1_targ(nxs, nxa.detach()), q2_targ(nxs, nxa.detach())
         )
     
     assert rews.shape == nxv.shape, f"{rews.shape}, {nxv.shape}"    
     y = rews + gamma*(1-dones)*(nxv - alpha*nxa_logprob.detach())
 
     # compute value loss
-    q1, q2 = Q1(obs, acs), Q2(obs, acs)
-    Q1_loss = F.mse_loss(q1, y)
-    Q2_loss = F.mse_loss(q2, y)
+    q1, q2 = q1(obs, acs), q2(obs, acs)
+    q1_loss = F.mse_loss(q1, y)
+    q2_loss = F.mse_loss(q2, y)
     
     # pytorch support multiple forward pass
     # all computation graphs are saved
     # https://discuss.pytorch.org/t/multiple-forward-passes-single-conditional-backward-pass/99277
     # this means I can compute loss f
     
-    # compute policy loss
+    # compute pi loss
     # objective is to maximize 
-    # Q(s, a) - \alpha \log \pi(a | s), a sampled from the current policy
-    acs_t, acs_t_logprob = policy.step(obs, no_grad=False)
-    policy_loss = -(torch.minimum(Q1(obs, acs_t), Q2(obs, acs_t)) - alpha*acs_t_logprob)
+    # Q(s, a) - \alpha \log \pi(a | s), a sampled from the current pi
+    acs_t, acs_t_logprob = pi.step(obs, no_grad=False)
+    pi_loss = -(torch.minimum(q1(obs, acs_t), q2(obs, acs_t)) - alpha*acs_t_logprob)
     
+    # @TODO
+    # instrument entropy of the squashed gaussian dist
+    # derive the formula for it based on Jacobian formula
+         
     res = {
-            "policy_loss": policy_loss,
-            "Q1_loss": Q1_loss,
-            "Q2_loss": Q2_loss
+            "pi_loss": pi_loss.mean(),
+            "q1_loss": q1_loss.mean(),
+            "q2_loss": q2_loss.mean(),
           }
+    return res
+    
 
 
 def SAC(*,
@@ -94,9 +109,11 @@ def SAC(*,
         warm_up_steps,
         gamma,
         alpha,
+        v_lr,
+        pi_lr,
         polyak,
         batch_size,
-        log_dir,
+        log_interval,
         ckpt_dir,
         **network_kwargs
         ):
@@ -105,7 +122,7 @@ def SAC(*,
     def make_env():
         env = gym.make(env_name)
         env = StartWithRandomActions(env, max_random_actions=5)
-        env = RecoverAction(env)
+        # env = RecoverAction(env)
         return env
 
     env = make_env()
@@ -122,22 +139,26 @@ def SAC(*,
           ob space shape: {ob_space.shape}", "======")
     
     # Q-net
-    Q1 = QNetForContinuousAction(
+    q1 = QNetForContinuousAction(
         ob_space=ob_space, ac_space=ac_space,
         ckpt_dir=ckpt_dir,
         **network_kwargs
         )
-    Q2 = deepcopy(Q1)
+    q2 = deepcopy(q1)
+    
+    q1_optim = optim.Adam(q1.model.parameters(), lr=v_lr)
+    q2_optim = optim.Adam(q2.model.parameters(), lr=v_lr)
     
     # target Q-net
-    Q1_targ = deepcopy(Q1)
-    Q2_targ = deepcopy(Q1)
+    q1_targ = deepcopy(q1)
+    q2_targ = deepcopy(q1)
     
-    # policy 
-    policy = SacPolicy(
+    # pi 
+    pi = SACPolicy(
         ob_space=ob_space, ac_space=ac_space, ckpt_dir=ckpt_dir,
         **network_kwargs
     )
+    pi_optim = optim.Adam(pi.model.parameters(), lr=pi_lr)    
 
     # memory buffer
     replay_buffer = Memory(
@@ -149,14 +170,13 @@ def SAC(*,
     best_ret = np.float('-inf')
     rolling_buf_episode_rets = deque(maxlen=100)
     curr_state = env.reset()
-    policy.reset()
 
     step=0
     while step <= nsteps:
         if step < warm_up_steps:
-            action = policy.random_action()
+            action = pi.random_action()
         else:
-            action, _ = policy.step(curr_state, no_grad=True)
+            action, _ = pi.step(curr_state, no_grad=True)
         nx, rew, done, _ = env.step(action)
         # record to the replay buffer
         assert nx.shape == ob_space.shape, f"{nx.shape},{ob_space.shape}"
@@ -167,7 +187,7 @@ def SAC(*,
         episode_rews += rew
         if done:
             curr_state = env.reset()
-            policy.reset()  # reset random process
+            pi.reset()  # reset random process
             rolling_buf_episode_rets.append(episode_rews)
             episode_rews = 0
         else:
@@ -176,5 +196,42 @@ def SAC(*,
         # train after warm up steps
         if step < warm_up_steps: continue
         batch = replay_buffer.sample(batch_size)
-        losses = compute_loss(policy, Q1, Q2, batch,
+        losses = compute_loss(pi, q1, q2, batch,
                               gamma, alpha)
+        
+        pi_loss, q1_loss, q2_loss = losses['pi_loss'], \
+            losses['q2_loss'], losses['q2_loss']
+
+        pi_optim.zero_grad()
+        pi_loss.backward()
+        pi_optim.step()
+        
+        q1_optim.zero_grad()
+        q1_loss.backward()
+        q1_optim.step()
+
+        q2_optim.zero_grad()
+        q2_loss.backward()
+        q2_optim.step()
+
+        # update target Q-nets
+        for p, p_targ in zip(q1.parameters(), q1_targ.parameters()):
+            p_targ.data.copy_(polyak*p_targ.data + (1-polyak)*p.data)
+
+        for p, p_targ in zip(q2.parameters(), q2_targ.parameters()):
+            p_targ.data.copy_(polyak*p_targ.data + (1-polyak)*p.data)
+        
+        if step % log_interval == 0 and step > warm_up_steps:
+            # loss from the policy and value net
+            for k, v in losses.items():
+                logger.record_tabular(k, np.mean(v.detach().numpy())) 
+            
+            # episodic returns
+            ret = np.mean(rolling_buf_episode_rets)
+            logger.record_tabular('ma_ep_ret', ret)
+        
+
+            
+        
+         
+        
