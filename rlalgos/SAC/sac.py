@@ -52,7 +52,8 @@ from copy import deepcopy
 import torch
 import torch.nn.functional as F
 import torch.optim as optim
-
+import time
+from ipdb import set_trace
 
 def compute_loss(pi, q1, q1_targ, q2, q2_targ,
                  batch, gamma, alpha):
@@ -65,18 +66,18 @@ def compute_loss(pi, q1, q1_targ, q2, q2_targ,
     # compute the target for the Q-nets
     # treat nxa and nxa_logprob as constant
     with torch.no_grad():
-        nxa, nxa_logprob = pi(nxs)
+        nxa, nxa_logprob, *_ = pi(nxs)
         nxv = torch.minimum(
-            q1_targ(nxs, nxa.detach()), q2_targ(nxs, nxa.detach())
+            q1_targ(nxs, nxa), q2_targ(nxs, nxa)
         )
     
     assert rews.shape == nxv.shape, f"{rews.shape}, {nxv.shape}"    
-    y = rews + gamma*(1-dones)*(nxv - alpha*nxa_logprob.detach())
+    y = rews + gamma*(1-dones)*(nxv - alpha*nxa_logprob)
 
     # compute value loss
-    q1, q2 = q1(obs, acs), q2(obs, acs)
-    q1_loss = F.mse_loss(q1, y)
-    q2_loss = F.mse_loss(q2, y)
+    q1_pred, q2_pred = q1(obs, acs), q2(obs, acs)
+    q1_loss = F.mse_loss(q1_pred, y)
+    q2_loss = F.mse_loss(q2_pred, y)
     
     # pytorch support multiple forward pass
     # all computation graphs are saved
@@ -86,7 +87,7 @@ def compute_loss(pi, q1, q1_targ, q2, q2_targ,
     # compute pi loss
     # objective is to maximize 
     # Q(s, a) - \alpha \log \pi(a | s), a sampled from the current pi
-    acs_t, acs_t_logprob = pi.step(obs, no_grad=False)
+    acs_t, acs_t_logprob, *_ = pi(obs)
     pi_loss = -(torch.minimum(q1(obs, acs_t), q2(obs, acs_t)) - alpha*acs_t_logprob)
     
     # @TODO
@@ -104,7 +105,7 @@ def compute_loss(pi, q1, q1_targ, q2, q2_targ,
 
 def SAC(*,
         env_name,
-        nsteps,
+        total_timesteps,
         buf_size,
         warm_up_steps,
         gamma,
@@ -127,11 +128,11 @@ def SAC(*,
 
     env = make_env()
 
-    if not os.path.exists(log_dir):
-        os.makedirs(log_dir)
     if not os.path.exists(ckpt_dir):
         os.makedirs(ckpt_dir)
-    logger.configure(dir=log_dir)
+    if not os.path.exists(ckpt_dir):
+        os.makedirs(ckpt_dir)
+    logger.configure(dir=ckpt_dir)
 
     ob_space = env.observation_space
     ac_space = env.action_space
@@ -155,7 +156,8 @@ def SAC(*,
     
     # pi 
     pi = SACPolicy(
-        ob_space=ob_space, ac_space=ac_space, ckpt_dir=ckpt_dir,
+        ob_space=ob_space, ac_space=ac_space, 
+        ckpt_dir=ckpt_dir,
         **network_kwargs
     )
     pi_optim = optim.Adam(pi.model.parameters(), lr=pi_lr)    
@@ -163,7 +165,8 @@ def SAC(*,
     # memory buffer
     replay_buffer = Memory(
         limit=buf_size,
-        action_shape=ac_space.shape
+        action_shape=ac_space.shape,
+        observation_shape=ob_space.shape,
     )
 
     
@@ -172,11 +175,13 @@ def SAC(*,
     curr_state = env.reset()
 
     step=0
-    while step <= nsteps:
+    start = time.perf_counter()
+    episode_rews = 0.0
+    while step <= total_timesteps:
         if step < warm_up_steps:
             action = pi.random_action()
         else:
-            action, _ = pi.step(curr_state, no_grad=True)
+            action, _, mean, std = pi.step(curr_state)
         nx, rew, done, _ = env.step(action)
         # record to the replay buffer
         assert nx.shape == ob_space.shape, f"{nx.shape},{ob_space.shape}"
@@ -187,20 +192,23 @@ def SAC(*,
         episode_rews += rew
         if done:
             curr_state = env.reset()
-            pi.reset()  # reset random process
             rolling_buf_episode_rets.append(episode_rews)
             episode_rews = 0
         else:
             curr_state = nx
 
         # train after warm up steps
+        step+=1
         if step < warm_up_steps: continue
         batch = replay_buffer.sample(batch_size)
-        losses = compute_loss(pi, q1, q2, batch,
-                              gamma, alpha)
+        losses = compute_loss(pi=pi, q1=q1, 
+                              q1_targ=q1_targ, 
+                              q2=q2, q2_targ=q2_targ, 
+                              batch=batch, gamma=gamma,
+                              alpha=alpha)
         
         pi_loss, q1_loss, q2_loss = losses['pi_loss'], \
-            losses['q2_loss'], losses['q2_loss']
+            losses['q1_loss'], losses['q2_loss']
 
         pi_optim.zero_grad()
         pi_loss.backward()
@@ -222,14 +230,63 @@ def SAC(*,
             p_targ.data.copy_(polyak*p_targ.data + (1-polyak)*p.data)
         
         if step % log_interval == 0 and step > warm_up_steps:
+            logger.record_tabular('step', step)
             # loss from the policy and value net
             for k, v in losses.items():
                 logger.record_tabular(k, np.mean(v.detach().numpy())) 
+
+            # mean and standard dev of action dist
+            logger.record_tabular('mean', mean.item())
+            logger.record_tabular('std', std.item())
             
             # episodic returns
             ret = np.mean(rolling_buf_episode_rets)
             logger.record_tabular('ma_ep_ret', ret)
+
+            # weights of the networks
+            pw, q1w, q2w = pi.average_weight(), q1.average_weight(), \
+                q2.average_weight()
+            
+            logger.record_tabular('policy_weight', pw)
+            logger.record_tabular('q1_weight', q1w)
+            logger.record_tabular('q2_weight', q2w)
+            
+            if ret > best_ret:
+                best_ret = ret
+                pi.save_ckpt('best', pi_optim)
+                q1.save_ckpt('best', q1_optim)
+                q2.save_ckpt('best', q2_optim)
+                
+            logger.dump_tabular()
         
+    logger.dump_tabular()     
+    pi.save_ckpt('best', pi_optim)
+    q1.save_ckpt('best', q1_optim)
+    q2.save_ckpt('best', q2_optim)
+
+    end = time.perf_counter()
+    print('Training completed')
+    print(f'Total time elapsed: {end - start}')
+    return
+
+if __name__ == '__main__':
+    SAC(
+        env_name='Pendulum-v0',
+        total_timesteps=int(1e4),
+        buf_size=int(1e4),
+        warm_up_steps=1000,
+        gamma=0.99,
+        alpha=0.1,
+        v_lr=1e-4,
+        pi_lr=1e-4,
+        polyak=0.99,
+        batch_size=128,
+        log_interval=100,
+        ckpt_dir='/tmp',
+        hidden_layers=[64, 128]
+    )    
+
+
 
             
         

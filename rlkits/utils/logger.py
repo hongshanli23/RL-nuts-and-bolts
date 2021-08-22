@@ -48,7 +48,6 @@ class HumanOutputFormat(KVWriter, SeqWriter):
 
         # Find max widths
         if len(key2str) == 0:
-            set_trace()
             print('WARNING: tried to write empty key-value dict')
             return
         else:

@@ -221,9 +221,6 @@ class REINFORCEPolicy(Policy):
         load_ckpt(self.model, ckptfile)
         return
         
-        
-        
-    
 class SACPolicy(Policy):
     """Policy for SAC """
     def __init__(self, ob_space, ac_space, ckpt_dir, 
@@ -237,6 +234,7 @@ class SACPolicy(Policy):
         """
         self.ob_space = ob_space
         self.ob_dim  = len(ob_space.shape)
+        self.input_dim = np.prod(ob_space.shape).item()
         
         self.ac_space = ac_space
         self.ac_space_dim = np.prod(ac_space.shape).item()
@@ -265,13 +263,13 @@ class SACPolicy(Policy):
         Returns:
             (torch.Tensor, torch.Tensor) action and its log probability
         """
-        obs = transform_input(obs)
+        obs, = transform_input(obs)
         mean, logstd = torch.split(self.model(obs), [1, 1], dim=1)
         std = torch.exp(logstd) 
         dist = Normal(mean, std)
 
         # sample an action and compute log prob
-        u = dist.sample()
+        u = dist.rsample()
         logprob = dist.log_prob(u)
         
         # squash through tanh to bound the action in [-1, 1]
@@ -285,9 +283,36 @@ class SACPolicy(Policy):
         # it is simply \log p(x), p(x) is the density fn
         # if p(x) transforms according to jacobian rule,
         # so is it log prob
-        logprob -= torch.log(1 - torch.tanh(u))
-        return a, logprob
+        # logprob -= torch.log(1 - torch.tanh(u))
+        logprob -= 2*(np.log(2) - u - F.softplus(-2*u))
+        return a, logprob, mean, std
+    
+    def step(self, obs):
+        with torch.no_grad():
+            a, logprob, mean, std = self(obs)
         
+        return a.numpy().reshape(self.ac_space.shape), \
+            logprob.numpy().reshape(self.ac_space.shape), \
+            mean.numpy(), std.numpy()
+    
+    def random_action(self):
+        return self.ac_space.sample()
+    
+    def average_weight(self):
+        return average_weight(self.model)
+    
+    def save_ckpt(self, postfix, optimizer=None):
+        save_ckpt(self.model, self.ckpt_dir, postfix)
+        if optimizer:
+            torch.save(optimizer.state_dict(), os.path.join(
+                self.ckpt_dir, f"optim-{postfix}.pth"
+            ))
+        return
+    
+    def load_ckpt(self, ckptfile):
+        load_ckpt(self.model, ckptfile)
+        return
+
     
 class DeterministicPolicy:
     """Deterministic policy for continuous action space"""
@@ -345,6 +370,7 @@ class DeterministicPolicy:
         return action
 
     def save_ckpt(self, postfix=''):
+        
         if not os.path.exists(self.ckpt_dir):
             os.makedirs(self.ckpt_dir)
         ckpt = {
@@ -381,41 +407,25 @@ class QNetForContinuousAction:
         return self.model.parameters()
 
     def __call__(self, obs, acs):
-        obs, acs = self.transform_input(obs, acs)
+        obs, acs = transform_input(obs, acs)
         assert obs.shape[0] == acs.shape[0]
         x = torch.cat([obs, acs], dim=1)
         return self.model(x)
 
     def average_weight(self):
-        pi = 0.0
-        cnt = 0
-        for p in self.parameters():
-            pi += torch.mean(p.data)
-            cnt += 1
-        pi /= cnt
-        return pi.numpy()
-
-    def save_ckpt(self, postfix=''):
-        if not os.path.exists(self.ckpt_dir):
-            os.makedirs(self.ckpt_dir)
-
-        ckpt = {
-            "model": self.model.state_dict()
-        }
-        torch.save(ckpt,
-                   os.path.join(self.ckpt_dir, f"ckpt-{postfix}.pth"))
+        return average_weight(self.model)
+    
+    def save_ckpt(self, postfix, optimizer=None):
+        save_ckpt(self.model, self.ckpt_dir, postfix)
+        if optimizer:
+            torch.save(optimizer.state_dict(), os.path.join(
+                self.ckpt_dir, f"optim-{postfix}.pth"
+            ))
         return
-
-    def transform_input(self, *args):
-        new_args = []
-        for i, x in enumerate(args):
-            if len(x.shape) == 1:
-                x = torch.unsqueeze(x, dim=0)
-            new_args.append(x)
-        return new_args
-
-
-
+    
+    def load_ckpt(self, ckptfile):
+        load_ckpt(self.model, ckptfile)
+        return
         
     
 class PolicyWithValue:
