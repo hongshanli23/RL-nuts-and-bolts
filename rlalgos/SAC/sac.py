@@ -40,6 +40,7 @@
 import os
 from collections import deque
 import gym
+import itertools
 import numpy as np
 from rlkits.memory import Memory
 from rlkits.utils import to_tensor
@@ -54,6 +55,7 @@ import torch.nn.functional as F
 import torch.optim as optim
 import time
 from ipdb import set_trace
+
 
 def compute_loss(pi, q1, q1_targ, q2, q2_targ,
                  batch, gamma, alpha):
@@ -101,7 +103,48 @@ def compute_loss(pi, q1, q1_targ, q2, q2_targ,
           }
     return res
     
+def compute_loss_q(pi, q1, q1_targ, q2, q2_targ,
+                   batch, gamma, alpha):
+    obs, acs, rews, nxs, dones = batch['obs0'], batch['actions'],\
+        batch['rewards'], batch['obs1'], batch['terminals1']
 
+    obs, acs, rews, nxs, dones = to_tensor(
+        obs, acs, rews, nxs, dones)
+    
+    # compute the target for the Q-nets
+    # treat nxa and nxa_logprob as constant
+    with torch.no_grad():
+        nxa, nxa_logprob, *_ = pi(nxs)
+        # inspect shape of log proba
+        nxv = torch.minimum(
+            q1_targ(nxs, nxa), q2_targ(nxs, nxa)
+        )
+    
+    assert rews.shape == nxv.shape, f"{rews.shape}, {nxv.shape}"    
+    y = rews + gamma*(1-dones)*(nxv - alpha*nxa_logprob)
+
+    # compute value loss
+    q1_pred, q2_pred = q1(obs, acs), q2(obs, acs)
+    q1_loss = F.mse_loss(q1_pred, y).mean()
+    q2_loss = F.mse_loss(q2_pred, y).mean()
+
+    # set_trace()
+    return q1_loss + q2_loss
+
+def compute_loss_pi(pi, q1,  q2, batch, alpha):
+    obs, acs, rews, nxs, dones = batch['obs0'], batch['actions'],\
+        batch['rewards'], batch['obs1'], batch['terminals1']
+
+    obs, acs, rews, nxs, dones = to_tensor(
+        obs, acs, rews, nxs, dones)
+    
+    acs_t, acs_t_logprob, *_ = pi(obs)
+
+    pi_loss = -(torch.minimum(q1(obs, acs_t), q2(obs, acs_t)) - \
+        alpha*acs_t_logprob).mean()
+    # set_trace()
+    return pi_loss 
+ 
 
 def SAC(*,
         env_name,
@@ -123,7 +166,7 @@ def SAC(*,
     def make_env():
         env = gym.make(env_name)
         env = StartWithRandomActions(env, max_random_actions=5)
-        # env = RecoverAction(env)
+        env = RecoverAction(env)
         return env
 
     env = make_env()
@@ -147,8 +190,8 @@ def SAC(*,
         )
     q2 = deepcopy(q1)
     
-    q1_optim = optim.Adam(q1.model.parameters(), lr=v_lr)
-    q2_optim = optim.Adam(q2.model.parameters(), lr=v_lr)
+    q_params = itertools.chain(q1.parameters(), q2.parameters()) 
+    q_optim = optim.Adam(q_params, lr=v_lr)
     
     # target Q-net
     q1_targ = deepcopy(q1)
@@ -171,7 +214,7 @@ def SAC(*,
 
     
     best_ret = np.float('-inf')
-    rolling_buf_episode_rets = deque(maxlen=100)
+    rolling_buf_episode_rets = deque(maxlen=10)
     curr_state = env.reset()
 
     step=0
@@ -201,26 +244,30 @@ def SAC(*,
         step+=1
         if step < warm_up_steps: continue
         batch = replay_buffer.sample(batch_size)
-        losses = compute_loss(pi=pi, q1=q1, 
-                              q1_targ=q1_targ, 
-                              q2=q2, q2_targ=q2_targ, 
-                              batch=batch, gamma=gamma,
-                              alpha=alpha)
         
-        pi_loss, q1_loss, q2_loss = losses['pi_loss'], \
-            losses['q1_loss'], losses['q2_loss']
+        # compute loss of q nets
+        q_loss = compute_loss_q(pi=pi, q1=q1, q1_targ=q1_targ,
+                                q2=q2, q2_targ=q2_targ, 
+                                batch=batch, gamma=gamma, alpha=alpha)
+        q_optim.zero_grad()
+        q_loss.backward()
+        q_optim.step()
 
+        # compute policy loss
+        # we do not need to build a graph for q-net in the forward pass
+        for p in q_params:
+            p.requires_grad = False
+        
+        pi_loss = compute_loss_pi(pi=pi, q1=q1, 
+                                  q2=q2, batch=batch,
+                                  alpha=alpha)
         pi_optim.zero_grad()
         pi_loss.backward()
         pi_optim.step()
         
-        q1_optim.zero_grad()
-        q1_loss.backward()
-        q1_optim.step()
-
-        q2_optim.zero_grad()
-        q2_loss.backward()
-        q2_optim.step()
+        # unfreeze q-net so that you can build graph in the next iteration
+        for p in q_params:
+            p.requires_grad=True        
 
         # update target Q-nets
         for p, p_targ in zip(q1.parameters(), q1_targ.parameters()):
@@ -232,8 +279,8 @@ def SAC(*,
         if step % log_interval == 0 and step > warm_up_steps:
             logger.record_tabular('step', step)
             # loss from the policy and value net
-            for k, v in losses.items():
-                logger.record_tabular(k, np.mean(v.detach().numpy())) 
+            logger.record_tabular('q_loss',  q_loss.detach().numpy())
+            logger.record_tabular('pi_loss', pi_loss.detach().numpy())
 
             # mean and standard dev of action dist
             logger.record_tabular('mean', mean.item())
@@ -254,15 +301,15 @@ def SAC(*,
             if ret > best_ret:
                 best_ret = ret
                 pi.save_ckpt('best', pi_optim)
-                q1.save_ckpt('best', q1_optim)
-                q2.save_ckpt('best', q2_optim)
+                q1.save_ckpt('best', q_optim)
+                q2.save_ckpt('best', None)
                 
             logger.dump_tabular()
         
     logger.dump_tabular()     
     pi.save_ckpt('best', pi_optim)
-    q1.save_ckpt('best', q1_optim)
-    q2.save_ckpt('best', q2_optim)
+    q1.save_ckpt('best', q_optim)
+    q1.save_ckpt('best', None) 
 
     end = time.perf_counter()
     print('Training completed')
@@ -272,7 +319,7 @@ def SAC(*,
 if __name__ == '__main__':
     SAC(
         env_name='Pendulum-v0',
-        total_timesteps=int(1e4),
+        total_timesteps=int(1e5),
         buf_size=int(1e4),
         warm_up_steps=1000,
         gamma=0.99,
@@ -283,7 +330,7 @@ if __name__ == '__main__':
         batch_size=128,
         log_interval=100,
         ckpt_dir='/tmp',
-        hidden_layers=[64, 128]
+        hidden_layers=[64, 64]
     )    
 
 

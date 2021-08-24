@@ -273,6 +273,8 @@ class SACPolicy(Policy):
         logprob = dist.log_prob(u)
         
         # squash through tanh to bound the action in [-1, 1]
+        # then I do need to normalize action so that they 
+        # are in [-1, 1] range
         a = torch.tanh(u)
         
         # I understand the jacobian formula via pull back of 
