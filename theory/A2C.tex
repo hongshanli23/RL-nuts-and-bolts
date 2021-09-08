@@ -48,10 +48,36 @@ in fact, if you have good and mediocre actions with positive reward,
 using $A(s, a)$ as offset reinforcement would minimize the likelihood
 of the mediocre action, because it would have negative $A$. 
 
+Optimal Control Variate
+
+Suppose we try to estimate a quantity $\mu$ defined as an expectation
+$\E[\hat m]$ and suppose we know another estimator $\hat t$ such 
+that not only we know $\tau = \E[\hat t]$ but also its its 
+correlation of with our initial estimator denoted by $\rho_{\hat m, \hat t}$
+We can build a better an unbiased estimator for $\mu$ as follow
+\[
+    \hat m ^{\prime} = \hat m - \alpha(\hat t - \tau)
+\]
+Note that $\hat t - \tau$ has expectation of 0. 
+
+\begin{proposition}{Optimal control variate}
+    The control variate estimator $\hat m ^{\prime}$ is unbiased for any
+    value of $\alpha$. Among all possible values of $\alpha$, the optimal
+    one (with least variance) is given by
+    \[
+        \alpha^* = \frac{\Cov(\hat m, \hat t)}{\Var(\hat t)} 
+        = \frac{\sigma_{\hat m}}{\sigma_{\hat t}} \rho_{\hat m, \hat t}
+    \]
+\end{proposition}
+
 \section{Training the value network via Bellman equation}
 
 
+
 \reference
+Optimal Covariate Estimate
 https://hal.archives-ouvertes.fr/hal-02886487/document
 
+Correlation
+https://en.wikipedia.org/wiki/Correlation
 \end{document}
