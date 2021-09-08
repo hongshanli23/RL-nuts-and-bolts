@@ -48,6 +48,17 @@ in fact, if you have good and mediocre actions with positive reward,
 using $A(s, a)$ as offset reinforcement would minimize the likelihood
 of the mediocre action, because it would have negative $A$. 
 
+If both actor and critic learn as expected, then higher $Q(s, a)$ 
+should correspond to higher $V(s)$. Thus, variance of $Q(s, a) - V(s)$
+is lower than that of $Q(s,a)$. 
+
+\section{Training value net (critic) with Bellman equation}
+Value net predicts the value of the state if we were to follow the policy (actor)
+so more precisely, value net predicts $v_{\pi}(s)$ at state $s$. 
+
+
+
+
 Optimal Control Variate
 
 Suppose we try to estimate a quantity $\mu$ defined as an expectation
