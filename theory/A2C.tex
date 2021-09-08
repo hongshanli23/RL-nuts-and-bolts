@@ -1,0 +1,57 @@
+\documentclass{article}
+\usepackage[T1]{fontenc}
+\usepackage[utf8]{inputenc}
+\usepackage{macro}
+
+\newcommand{\tpi}{\mathcal{T}^{\pi}}
+\title{Advantage Actor-Critic Method (A2C)}
+\author{Hongshan Li (hongshal@amazon.com)}
+\begin{document}
+\maketitle
+
+A few problems with policy gradient algorithms (REINFORCE)
+\begin{itemize}
+    \item The algorithm is not sample efficient, one trajectory
+        is only used to update the policy once and it is then
+        tossed away.
+    \item the training can be unstable, because the gradient 
+        policy gradients are "offset reinforced" by the
+        state action value 
+        \[
+            q_{\pi}(s, a) = R_{t+1} + \gamma R_{t+2} + \cdots + 
+                \gamma^{T-t-1}R_T
+        \]
+        So actions with outlier rewards can change the policy gradient
+        substantiatlly and make the learning unstable. 
+\end{itemize}
+
+    
+A2C is another policy gradient based method that tackles the above problems. 
+Main ideas of A2C are
+Sample experiences from different randomizations of the environment 
+in parallel, so that more experiences with more variety can be used 
+to train the policy. 
+
+Beside training a policy net (actor), we also train a critic (value net),
+f the state $v(s)$. We can use it compute the 
+"advantage" of the action
+\[
+  A(s, a) = q_{\pi}(s, a) - v(s)
+\]
+and use $A(s, a)$ as the "offset reinforcement", so that the policy gradient 
+becomes
+\[
+  \nabla(J(\theta)) = \alpha \times A(s, a) \times \nabla\log\pi(a|s)
+\]
+By using $A(s, a)$ we will still maximize the likelihood of good actions,
+in fact, if you have good and mediocre actions with positive reward, 
+using $A(s, a)$ as offset reinforcement would minimize the likelihood
+of the mediocre action, because it would have negative $A$. 
+
+\section{Training the value network via Bellman equation}
+
+
+\reference
+https://hal.archives-ouvertes.fr/hal-02886487/document
+
+\end{document}
