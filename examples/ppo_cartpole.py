@@ -42,35 +42,37 @@ parser.add_argument('--ckpt-dir', type=str, default='/tmp/ppo',
                    help='directory to write checkpoint')
 args = parser.parse_args()
 
+if __name__ == '__main__':
+    # main guard is neccessary to spawn subprocess on macos and windows
+    # https://stackoverflow.com/questions/18204782/runtimeerror-on-windows-trying-python-multiprocessing
 
-def make_env():
-    env = gym.make('CartPole-v0').unwrapped
-    env = AutoReset(env)
-    env = StartWithRandomActions(env, max_random_actions=5)
-    return env
+    def make_env():
+        env = gym.make('CartPole-v0').unwrapped
+        env = AutoReset(env)
+        env = StartWithRandomActions(env, max_random_actions=5)
+        return env
 
-env=ParallelEnvBatch(make_env, nenvs=args.nenvs)
+    env=ParallelEnvBatch(make_env, nenvs=args.nenvs)
+    PPO(
+        env=env,
+        nsteps=args.nsteps,
+        total_timesteps=args.nenvs*args.nsteps*args.niters,
+        max_kl=args.max_kl,
+        beta=args.beta,
+        eps = args.eps,
+        gamma= args.gamma,
+        pi_lr= args.pi_lr,
+        v_lr = args.v_lr,
+        ent_coef=args.ent_coef,
+        epochs=args.epochs,
+        batch_size=args.batch_size or args.nsteps * args.nenvs, 
+        log_interval=args.log_intervals,
+        max_grad_norm=args.max_grad_norm,
+        reward_transform=None,
+        log_dir=args.log_dir,
+        ckpt_dir=args.ckpt_dir,
+        hidden_layers=[256, 256, 64],
+        activation=torch.nn.ReLU, 
+        )
 
-PPO(
-    env=env,
-    nsteps=args.nsteps,
-    total_timesteps=args.nenvs*args.nsteps*args.niters,
-    max_kl=args.max_kl,
-    beta=args.beta,
-    eps = args.eps,
-    gamma= args.gamma,
-    pi_lr= args.pi_lr,
-    v_lr = args.v_lr,
-    ent_coef=args.ent_coef,
-    epochs=args.epochs,
-    batch_size=args.batch_size or args.nsteps * args.nenvs, 
-    log_interval=args.log_intervals,
-    max_grad_norm=args.max_grad_norm,
-    reward_transform=None,
-    log_dir=args.log_dir,
-    ckpt_dir=args.ckpt_dir,
-    hidden_layers=[256, 256, 64],
-    activation=torch.nn.ReLU, 
-    )
-
-env.close()
+    env.close()

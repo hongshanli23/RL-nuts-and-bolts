@@ -69,7 +69,6 @@ def sync_policies(oldpi, pi):
     oldpi.value_net.load_state_dict(pi.value_net.state_dict())
     return
 
-
 def policy_diff(oldpi, pi):
     """Compute the average distance between params of oldpi and pi"""
     diff = 0.0
@@ -81,8 +80,7 @@ def policy_diff(oldpi, pi):
 
 
 def A2C(
-    env_name,
-    nenvs,
+    env, 
     nsteps,
     gamma,
     total_timesteps,
@@ -93,13 +91,12 @@ def A2C(
     max_grad_norm,
     reward_transform,
     ckpt_dir,
-    clip_episode,
     **network_kwargs
 ):
     """A2C algorithm
 
     Args:
-        env_name (str): gym environment name 
+        env (ParallelEnv): gym environment name 
         nenvs (int): number of parallel envs
         nsteps (int): length of parallel trajectory to be sampled from the env 
         gamma (float): discount factor 
@@ -122,19 +119,6 @@ def A2C(
     if not os.path.exists(ckpt_dir):
         os.makedirs(ckpt_dir)
     logger.configure(dir=ckpt_dir)
-
-    # create a environemnt
-    def make_env():
-        env = gym.make(env_name)
-        if clip_episode is False:
-            # .unwrapped makes the environment to run indefinitely
-            # if there's no signal to stop (e.g. Pendulum)
-            env = env.unwrapped
-        env = AutoReset(env)
-        env = StartWithRandomActions(env, max_random_actions=5)
-        return env
-
-    env=ParallelEnvBatch(make_env, nenvs=nenvs)
 
     ob_space = env.observation_space
     ac_space = env.action_space
@@ -166,7 +150,7 @@ def A2C(
     nframes = env.nenvs * nsteps # number of frames processed by update iter
     nupdates = total_timesteps // nframes
 
-    start = time.perf_count()
+    start = time.perf_counter()
     best_ret = np.float('-inf')
     for update in range(1, nupdates+1):
         sync_policies(oldpi, pi)
@@ -187,7 +171,7 @@ def A2C(
 
         losses = compute_loss(pi=pi,
                            trajectory=trajectory,
-                           log_dir=log_dir)
+                           log_dir=ckpt_dir)
 
         frac = 1.0 - (update - 1.0)/nupdates
         loss = losses['pi_loss'] + losses['v_loss'] \
