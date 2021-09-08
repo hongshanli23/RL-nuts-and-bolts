@@ -54,41 +54,100 @@ is lower than that of $Q(s,a)$.
 
 \section{Training value net (critic) with Bellman equation}
 Value net predicts the value of the state if we were to follow the policy (actor)
-so more precisely, value net predicts $v_{\pi}(s)$ at state $s$. 
-
-
-
-
-Optimal Control Variate
-
-Suppose we try to estimate a quantity $\mu$ defined as an expectation
-$\E[\hat m]$ and suppose we know another estimator $\hat t$ such 
-that not only we know $\tau = \E[\hat t]$ but also its its 
-correlation of with our initial estimator denoted by $\rho_{\hat m, \hat t}$
-We can build a better an unbiased estimator for $\mu$ as follow
+so more precisely, value net predicts $v_{\pi}(s_t)$ at state $s_t$. 
+$v_{\pi}(s_t)$ is defined recursively in terms of next state
 \[
-    \hat m ^{\prime} = \hat m - \alpha(\hat t - \tau)
+  v_{\pi}(S_t) = \E_{\pi}(R_{t+1} + \gamma v_{\pi}(S_{t+1})
 \]
-Note that $\hat t - \tau$ has expectation of 0. 
+($S_t$ means the random variable of state at time step $t$, $s_t$ means 
+a specific state the environment assumes at time step $t$)
 
-\begin{proposition}{Optimal control variate}
-    The control variate estimator $\hat m ^{\prime}$ is unbiased for any
-    value of $\alpha$. Among all possible values of $\alpha$, the optimal
-    one (with least variance) is given by
-    \[
-        \alpha^* = \frac{\Cov(\hat m, \hat t)}{\Var(\hat t)} 
-        = \frac{\sigma_{\hat m}}{\sigma_{\hat t}} \rho_{\hat m, \hat t}
-    \]
-\end{proposition}
+This gives us a loss objective for training the value net. At current time
+step, the objective is to make your prediction as close as you would be if
+you were in the next state. Intuition is, being in the next state always 
+expose you with a bit more understanding of the env. This is what Richard Sutton
+would say "update your guess with a better guess". 
 
-\section{Training the value network via Bellman equation}
+So the loss objective of critic is
+\[
+  L(v_{\pi}(s_t, a_t)) = ||r_{t+1} + \gamma v_{s_{t+1}} - v_{s_t}||^2
+\]
+
+The equation 
+\[
+  v_{\pi}(S_t) = \E_{\pi}(R_{t+1} + \gamma v_{\pi}(S_{t+1})
+\]
+is called Bellman equation (Richard Bellman, same guy coined the term
+dynamic programming). It is not exactly a definition, it is a consequence
+of two properties of the MDP
+\begin{itemize}
+  \item (Memoryless) the transition probability only depends on the current
+    state
+  \item (Ergodicness) the action of the agent does not change the model (
+    transition probablity) of the env
+\end{itemize}
+\newpage
+
+\section{A2C algorithm}
+
+\begin{algorithm}[H]
+  \caption{A2C}
+\end{algorithm}
+\begin{algorithmic}[1]
+  \STATE INPUT: a differentiable policy $\pi_{\theta}$; 
+  a differentiable value net $v_{\phi}$; learning rates
+  $\alpha$ and $\beta$ for $\pi$ and $v$ respectively;
+  a predefined number of parallel environment $n$
+  
+  \REPEAT
+  \STATE Generate $n$ trajectories $\tau_1, \cdots, \tau_n$ in parallel 
+  using replicas of the $\pi$. Each trajectory $\tau_i$ is of the form 
+  $(s_{i,0}, a_{i,0}, r_{i,1}, \cdots, s_{i,T-1}, a_{i,T-1}, r_{i,T})$
+
+  \FOR{$i=1,\cdots,n$}
+    \FOR{$t=T-1, T-2, \cdots, 0$}
+      \STATE Compute
+      \[
+        q_{\pi}(a_{i,t}, s_{i,t})  = r_{i,t+1}+\gamma r_{i,t+2} + \cdots + 
+          \gamma^{i,T-t-1}r_T
+      \]
+      \STATE Estimate state value through value net
+      \[
+        v_{i,t} = v_{\phi}(s_{i,t})
+      \]
+      \STATE Compute advantage for $(s_{i,t}, a_{i,t}, r_{i,t+1})$
+      \[
+         A(s_{i,t}, a_{i,t}) = q_{\pi}(a_{i,t}, s_{i,t}) - v_{i,t}
+      \]
+      \STATE Estimate policy gradient
+      \[
+         \nabla \hat J(\theta) = \nabla \log\pi(a_{i,t}|s_{i,t})A(s_{i,t}, 
+          a_{i,t})
+        \]
+      \STATE Update policy parameters
+      \[
+         \theta \leftarrow \alpha\frac{1}{nT}\nabla \hat J(\theta)
+       \]
+      \STATE Compute value net loss
+      \[
+         L(s_{i,t}, a_{i,t}) = ||v_{\phi}(s_{i,t},a_{i,t}) - r_{i,t+1} - 
+          \gamma v_{\phi}(s_{i,t+1}) ||^2
+      \]
+      \STATE Compute the semi-gradient of $L$ with respect to $\phi$ by 
+      treating $v_{\phi}(s_{i,t+1})$ as a constant
+      
+      \STATE Update $\phi$ by gradient descent with learning rate 
+      $\beta * \frac{1}{Tn}$
+    \ENDFOR
+  \ENDFOR
+  \UNTIL{The policy converges}
+\end{algorithmic}
+
+\begin{thebibliography}{9}
+\bibitem{asyncpaper}
+  V. Minh et al, \emph{Asynchronous Methods for Deep Reinforcement Learning}
+
+\end{thebibliography}
 
 
-
-\reference
-Optimal Covariate Estimate
-https://hal.archives-ouvertes.fr/hal-02886487/document
-
-Correlation
-https://en.wikipedia.org/wiki/Correlation
 \end{document}
