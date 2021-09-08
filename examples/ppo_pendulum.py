@@ -17,15 +17,15 @@ parser.add_argument('--nsteps', type=int, default=128,
 # Algo Hyp
 parser.add_argument('--max-kl', type=float, default=1e-3,
                    help='KL target')
-parser.add_argument('--eps', type=float, default=0.1, 
+parser.add_argument('--eps', type=float, default=0.1,
                    help='clip range')
 parser.add_argument('--beta', type=float, default=0.5,
                    help='Penalty factor for KL')
-parser.add_argument('--gamma', type=float, default=0.99, 
+parser.add_argument('--gamma', type=float, default=0.99,
                    help='discount factor')
 parser.add_argument('--pi-lr', type=float, default=1e-4,
                    help='policy learning rate')
-parser.add_argument('--v-lr', type=float, default=1e-4, 
+parser.add_argument('--v-lr', type=float, default=1e-4,
                    help='value net learning rate')
 parser.add_argument('--ent-coef', type=float, default=1e-2,
                    help='entropy coefficient')
@@ -64,14 +64,14 @@ PPO(
     v_lr = args.v_lr,
     ent_coef=args.ent_coef,
     epochs=args.epochs,
-    batch_size=args.batch_size or args.nsteps * args.nenvs, 
+    batch_size=args.batch_size or args.nsteps * args.nenvs,
     log_interval=args.log_intervals,
     max_grad_norm=args.max_grad_norm,
     reward_transform=None,
     log_dir=args.log_dir,
     ckpt_dir=args.ckpt_dir,
     hidden_layers=[256, 256, 64],
-    activation=torch.nn.ReLU, 
+    activation=torch.nn.ReLU,
     )
 
 env.close()

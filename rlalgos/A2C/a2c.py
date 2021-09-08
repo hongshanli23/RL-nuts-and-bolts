@@ -10,22 +10,20 @@ import pprint as pp
 import pickle
 import sys
 
-
 from rlkits.sampler import ParallelEnvTrajectorySampler
 from rlkits.sampler import estimate_Q
 from rlkits.sampler import aggregate_experience
-from rlkits.sampler import shuffle_experience
 from rlkits.policies import PolicyWithValue
 import rlkits.utils as U
-from rlkits.utils import colorize
 import rlkits.utils.logger as logger
 from rlkits.utils.math import explained_variance
+from rlkits.env_batch import ParallelEnvBatch
+from rlkits.env_wrappers import AutoReset, StartWithRandomActions
 
 import torch
 import torch.optim as optim
 import torch.nn.functional as F
 from torch.nn.utils import clip_grad_norm_
-
 
 def compute_loss(pi, trajectory, log_dir):
     """Compute loss for policy and value net"""
@@ -83,7 +81,8 @@ def policy_diff(oldpi, pi):
 
 
 def A2C(
-    env,
+    env_name,
+    nenvs,
     nsteps,
     gamma,
     total_timesteps,
@@ -93,15 +92,49 @@ def A2C(
     log_interval,
     max_grad_norm,
     reward_transform,
-    log_dir,
     ckpt_dir,
+    clip_episode,
     **network_kwargs
 ):
-    if not os.path.exists(log_dir):
-        os.makedirs(log_dir)
+    """A2C algorithm
+
+    Args:
+        env_name (str): gym environment name 
+        nenvs (int): number of parallel envs
+        nsteps (int): length of parallel trajectory to be sampled from the env 
+        gamma (float): discount factor 
+        total_timesteps (int): total number of frames to be sampled from the env 
+        pi_lr (float): policy learning rate 
+        v_lr (float): value net learning rate 
+        ent_coef (float): entropy coefficient 
+        log_interval (int): number of training steps between each checkpointing
+        max_grad_norm (float, None): max norm of the gradients for each layer of the policy network. 
+            For example, if `max_grad_norm=0.1`, then the L2 norm of the gradient tensor for 
+            each layer is capped at 0.1. If `max_grad_norm = None`, then no gradient clip is applied.
+        reward_transform (callable): a callback to be applied to the reward for each step of experienece sampling. 
+        ckpt_dir (str): directory to save the log and checkpoint 
+        clip_episode (bool): whether to enforce hard stop on non-ending environment. Certain environments, 
+            e.g. Pendulum, do not have a stopping signal, the episode would run forever. If `clip_episode=True`,
+            then the env runs for at most 200 steps
+    Returns:
+        None
+    """
     if not os.path.exists(ckpt_dir):
         os.makedirs(ckpt_dir)
-    logger.configure(dir=log_dir)
+    logger.configure(dir=ckpt_dir)
+
+    # create a environemnt
+    def make_env():
+        env = gym.make(env_name)
+        if clip_episode is False:
+            # .unwrapped makes the environment to run indefinitely
+            # if there's no signal to stop (e.g. Pendulum)
+            env = env.unwrapped
+        env = AutoReset(env)
+        env = StartWithRandomActions(env, max_random_actions=5)
+        return env
+
+    env=ParallelEnvBatch(make_env, nenvs=nenvs)
 
     ob_space = env.observation_space
     ac_space = env.action_space
@@ -133,7 +166,7 @@ def A2C(
     nframes = env.nenvs * nsteps # number of frames processed by update iter
     nupdates = total_timesteps // nframes
 
-    start = time.perf_counter()
+    start = time.perf_count()
     best_ret = np.float('-inf')
     for update in range(1, nupdates+1):
         sync_policies(oldpi, pi)
@@ -232,70 +265,18 @@ def A2C(
             if ret != np.nan and ret > best_ret:
                 best_ret = ret
                 pi.save_ckpt('best')
-
-
             logger.dump_tabular()
 
     pi.save_ckpt('last')
     torch.save(poptimizer, os.path.join(ckpt_dir, 'optim.pth'))
     torch.save(voptimizer, os.path.join(ckpt_dir, 'optim.pth'))
+    end = time.perf_counter()
+    env.close()
+    logger.log(f"Total time elapsed: {end - start}")
     return
 
 
 def safemean(l):
     return np.nan if len(l) == 0 else np.mean(l)
 
-
-if __name__ == '__main__':
-    from rlkits.env_batch import ParallelEnvBatch
-    from rlkits.env_wrappers import AutoReset, StartWithRandomActions
-    from rlkits.env_wrappers import TransformReward, Truncate
-
-
-    def stochastic_reward(rew):
-        eps = np.random.normal(loc=0.0, scale=0.1, size=rew.shape)
-        return rew + eps
-
-    def make_env():
-        env = gym.make('CartPole-v0').unwrapped
-        env = AutoReset(env)
-        env = StartWithRandomActions(env, max_random_actions=5)
-        return env
-
-
-    def normalize_pendulum(rew):
-        """Reward normalizer for Pendulum"""
-        return (rew + 8)
-
-    def pendulum():
-        """Make env for pendulum"""
-
-        env = gym.make('Pendulum-v0')
-        #env = TransformReward(env, normalize_pendulum)
-        #env = Truncate(env, lower_bound=-10)
-        env = AutoReset(env)
-        return env
-
-    nsteps=128
-    nenvs = 8
-    env=ParallelEnvBatch(pendulum, nenvs=nenvs)
-
-
-
-    A2C(
-        env=env,
-        nsteps=nsteps,
-        gamma=0.99,
-        total_timesteps=nsteps*nenvs*10000,
-        pi_lr=1e-4,
-        v_lr=1e-4,
-        ent_coef=0.0,
-        log_interval=10,
-        max_grad_norm=0.1,
-        reward_transform=None,
-        log_dir= '/home/ubuntu/reinforcement-learning/experiments/A2C_2/log/pendulum/5',
-        ckpt_dir='/home/ubuntu/reinforcement-learning/experiments/A2C_2/log/pendulum/5',
-        hidden_layers=[256, 256, 64],
-        activation=torch.nn.ReLU
-    )
 
