@@ -16,7 +16,11 @@ A few problems with policy gradient algorithms (REINFORCE)
         tossed away.
     \item the training can be unstable, because the gradient 
         policy gradients are "offset reinforced" by the
-        state action value 
+        state action value. Recall
+        \[
+            \nabla J(\pi_{\theta}) = \alpha \times q_{\pi}(s,a) 
+            \times \nabla \log\pi(a|s)
+        \]
         \[
             q_{\pi}(s, a) = R_{t+1} + \gamma R_{t+2} + \cdots + 
                 \gamma^{T-t-1}R_T
@@ -27,10 +31,15 @@ A few problems with policy gradient algorithms (REINFORCE)
 
     
 A2C is another policy gradient based method that tackles the above problems. 
-Main ideas of A2C are
+Main ideas of A2C are:
+
 Sample experiences from different randomizations of the environment 
 in parallel, so that more experiences with more variety can be used 
 to train the policy. 
+
+Use a value net to predict a state value $v(s)$, which is used as 
+the baseline of offset reinforcement. This reduces the variance 
+of training.
 
 Beside training a policy net (actor), we also train a critic (value net),
 f the state $v(s)$. We can use it compute the 
@@ -57,7 +66,7 @@ Value net predicts the value of the state if we were to follow the policy (actor
 so more precisely, value net predicts $v_{\pi}(s_t)$ at state $s_t$. 
 $v_{\pi}(s_t)$ is defined recursively in terms of next state
 \[
-  v_{\pi}(S_t) = \E_{\pi}(R_{t+1} + \gamma v_{\pi}(S_{t+1})
+  v_{\pi}(S_t) = \E_{\pi}(R_{t+1} + \gamma v_{\pi}(S_{t+1}))
 \]
 ($S_t$ means the random variable of state at time step $t$, $s_t$ means 
 a specific state the environment assumes at time step $t$)
@@ -75,7 +84,7 @@ So the loss objective of critic is
 
 The equation 
 \[
-  v_{\pi}(S_t) = \E_{\pi}(R_{t+1} + \gamma v_{\pi}(S_{t+1})
+  v_{\pi}(S_t) = \E_{\pi}(R_{t+1} + \gamma v_{\pi}(S_{t+1}))
 \]
 is called Bellman equation (Richard Bellman, same guy coined the term
 dynamic programming). It is not exactly a definition, it is a consequence
@@ -109,7 +118,7 @@ of two properties of the MDP
       \STATE Compute
       \[
         q_{\pi}(a_{i,t}, s_{i,t})  = r_{i,t+1}+\gamma r_{i,t+2} + \cdots + 
-          \gamma^{i,T-t-1}r_T
+          \gamma^{T-t-1}r_{i,T}
       \]
       \STATE Estimate state value through value net
       \[
