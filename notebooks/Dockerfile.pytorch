@@ -22,8 +22,7 @@ RUN pip uninstall -y \
 
 # install rlkits and rlalgos
 RUN git clone https://github.com/hsl89/RL-nuts-and-bolts.git 
-RUN cd RL-nuts-and-bolts 
-RUN pip install -e .
+RUN cd RL-nuts-and-bolts && pip install -e .
 
 
 

@@ -47,7 +47,6 @@ if __name__ == '__main__':
     A2C(
         env=env,
         nsteps=args.nsteps,
-        nenvs=args.nenvs,
         total_timesteps=args.total_timesteps,
         gamma= args.gamma,
         pi_lr= args.pi_lr,
@@ -56,7 +55,6 @@ if __name__ == '__main__':
         log_interval=args.log_intervals,
         max_grad_norm=args.max_grad_norm,
         reward_transform=None,
-        clip_episode=args.clip_episode,
         ckpt_dir=args.ckpt_dir,
         hidden_layers=[256, 256, 64],
         activation=torch.nn.ReLU, 

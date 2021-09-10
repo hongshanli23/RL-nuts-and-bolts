@@ -29,7 +29,8 @@ setup(name='RL Nuts and Bolts',
           #      if package.startswith('')
       ],
       install_requires=[
-          'gym==0.14'
+          'gym==0.14',
+          'ipdb'
       ],
       extras_require=extras,
       description='Components for building awesome RL algorithms',
