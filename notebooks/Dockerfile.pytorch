@@ -1,0 +1,30 @@
+# base image comes from 
+# https://github.com/aws/deep-learning-containers/blob/master/pytorch/training/docker/1.8/py3/Dockerfile.cpu
+
+FROM 763104351884.dkr.ecr.us-east-1.amazonaws.com/pytorch-training:1.8.1-cpu-py36-ubuntu18.04
+
+RUN pip uninstall -y \
+  sagemaker \
+  sagemaker-experiments \
+  smdebug \
+  crytography \
+  click \
+  fastai \
+  awscli \
+  pyyaml \
+  Pillow \
+  bokeh \
+  imageio \
+  opencv-python \
+  plotly \
+  seaborn \
+  shap 
+
+# install rlkits and rlalgos
+RUN git clone https://github.com/hsl89/RL-nuts-and-bolts.git 
+RUN cd RL-nuts-and-bolts 
+RUN pip install -e .
+
+
+
+
