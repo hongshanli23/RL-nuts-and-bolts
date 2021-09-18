@@ -2,10 +2,49 @@
 \usepackage{macro}
 \begin{document}
 
+Policy gradient methods attempt to update the parameter of the policy
+$\pi_{\theta}$ in the way that maximizes the expected return
+\[
+    J(\theta) \definedas \int_{\A \times \S}\mu(s)
+    \pi_{\theta}(a|s)A(a, s) dads
+\]
+This is equivalent to maximize likehood of actions $a$ (conditioned over
+$s$) according to its advantage. 
+
+But this is not an optimization problem, as we do not want to make 
+good actions "too likely". This is because state visitation distribution
+depends on the policy itself, big change in policy creates big change
+of state visitation, so overly optimized action likelihood conditioned
+on previous state visitation would underfit for the state visitation 
+under updated policy (one instance of bias variance trade off).
+This is a distinctive difference to the supervised learning, in SL we 
+do want to solve maximum likelihood estimator as optimization problem,
+because the distribution of input data stays unchanged throughout the 
+training.
+
+TRPO attempts to treat policy gradient methods as an optimization 
+problem by constraining the policy update to a trust region
+\begin{align*}
+    & \theta_{k+1} = \argmax_{\theta} \E_{(a,s)\sim \pi_{\theta_k}} 
+        (\frac{\pi_{\theta}(a|s)}{\pi_{\theta_k}(a|s)} A^{\theta_k}(a, s) \\
+    & D_{KL}(\theta || \theta_k) < \delta
+\end{align*}
+
+within the trust region, we assume the state visitation distribution
+stays constant, so that policy gradient RL becomes SL locally inside
+the trust region. 
+
+We needs to compute the Hessian of the parametric policy in order to 
+compute the step size of the policy update (maximum update and stay in 
+the trust region). Compute Hessian directly involves $O(N^2)$ time and
+space ($N$ number of parameters). We can avoid computing the Hessian 
+through conjugate gradient methods. This reduces the problem to $C O(N)$
+where $C$ is the number of conjugate gradient iterations. Take away is
+TRPO can be computationally expensive.
+
+
 PPO attepmts to solve the same problem as TRPO: get the biggest step
-size for policy update without breaking the policy. TRPO solves it 
-with hard KL constaint and it uses second-order method (Hessian) to
-estimate the step size. 
+size for policy update without breaking the policy. 
 
 PPO only involves first-order optimization. According to the published
 results, the performance of PPO is just as good as TRPO. 
@@ -16,6 +55,7 @@ Two variants of PPO
 close to the old one. It clips the surrgate gain (it clips the 
 $\frac{\pi(a|s)}{\pi_{\text{old}}(a|s)}$ term to $(1 - \epsilon, 
 1 + \epsilon)$ range to make sure the policy update is not too big. 
+This behaves like trust region method.
 
 \textbf{PPO-Penalty} solves the KL-contrained update like TRPO. It 
 penalizes the KL-divergence in the objective instead of making it a 
@@ -40,8 +80,8 @@ A^{\pi_k}(s, a))
 Interpretation:
 $\text{clip}(\frac{\pi_{\theta}(a|s)}{\pi_{\theta_k}(a|s)}, 
 1-\epsilon, 1 + \epsilon)$ makes 
-$\pi_{\theta}(a|s) \in [(1-\epsilon)\pi_{\theta}, (1+\epsilon)
-\pi_{\theta}]$
+$\pi_{\theta}(a|s) \in [(1-\epsilon)\pi_{\theta_k}, (1+\epsilon)
+\pi_{\theta_k}]$
 
 Suppose $A^{\pi_k}(a|s) <0$, you want to make $a$ less likely. The 
 update objectively says $\pi_{k+1}(a|s) \geq (1-\epsilon)\pi_k(a|s)$;
@@ -51,12 +91,17 @@ $\pi_{k+1}(a|s) \leq (1 + \epsilon)\pi_k(a|s)$.
 
 The objective says the new policy can be at most $\epsilon$ "units" 
 away from the old policy. This is some sort of trust-region 
-optimization, $\epsilon$ defines the size of the trust region.  
+optimization, $\epsilon$ defines the size ofthe trust region.  
+
+\includegraphics[width=12cm]{ppo_clip}
 
 \begin{algorithm}[H]
 \caption{PPO-clip}
 \label{alg1}
 \end{algorithm}
+Let $g(\theta, A^{\pi_k}(s,a)) = \text{clip}(
+\frac{\pi_{\theta}(a|s)}{\pi_k(a|s)}, 1-\epsilon, 1 + \epsilon)
+A^{\pi_k}(s, a))$
 
 \begin{algorithmic}[1]
 \STATE Input: initial policy $\theta_0$, initial value function $\phi_0$
