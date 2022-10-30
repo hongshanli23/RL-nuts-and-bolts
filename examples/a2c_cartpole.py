@@ -14,11 +14,11 @@ parser.add_argument('--nsteps', type=int, default=128,
 parser.add_argument('--total-timesteps', type=int, default=int(1e6),
                     help='total number of experiences to sample')
 # Algo Hyperparams
-parser.add_argument('--gamma', type=float, default=0.99, 
+parser.add_argument('--gamma', type=float, default=0.99,
                    help='discount factor')
 parser.add_argument('--pi-lr', type=float, default=1e-4,
                    help='policy learning rate')
-parser.add_argument('--v-lr', type=float, default=1e-4, 
+parser.add_argument('--v-lr', type=float, default=1e-4,
                    help='value net learning rate')
 parser.add_argument('--ent-coef', type=float, default=1e-2,
                    help='entropy coefficient')
@@ -28,7 +28,7 @@ parser.add_argument('--log-intervals', type=int, default=10,
                    help='logging frequency')
 parser.add_argument('--ckpt-dir', type=str, default='/tmp/a2c',
                    help='directory to write checkpoint')
-parser.add_argument('--clip-episode', action='store_true', 
+parser.add_argument('--clip-episode', action='store_true',
                     help='clip episode length to 200 steps')
 args = parser.parse_args()
 
@@ -57,5 +57,5 @@ if __name__ == '__main__':
         reward_transform=None,
         ckpt_dir=args.ckpt_dir,
         hidden_layers=[256, 256, 64],
-        activation=torch.nn.ReLU, 
+        activation=torch.nn.ReLU,
         )
